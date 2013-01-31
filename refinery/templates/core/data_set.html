@@ -121,7 +121,7 @@ rect.active {
 
 	<div class="row-fluid">      
 	    <ul class="nav nav-tabs" id="tabs">
-  			<li class="active"><a href="#content" data-toggle="tab">Samples</a></li>
+  			<li><a href="#content" data-toggle="tab">Samples</a></li>
   			{% if has_change_dataset_permission %}
   			<li><a href="#configuration" data-toggle="tab">Attributes</a></li>
   			{% endif %}	
@@ -130,6 +130,7 @@ rect.active {
   			{% endif %}	
   			<li><a href="#details" data-toggle="tab">Details</a></li>
   			<li><a href="#sharing" data-toggle="tab">Sharing</a></li>
+  			<li class="active"><a href="#sample-selection" data-toggle="tab">Sample Selection</a></li>
   	    </ul>
   	</div>
   	
@@ -141,7 +142,7 @@ rect.active {
 
 	<div class="tab-content">
 
-  		<div class="tab-pane fade active in" id="content">			
+  		<div class="tab-pane" id="content">			
 			<form id="sampleForm" method="post" class="form-inline">
 				{% csrf_token %}
 			
@@ -396,6 +397,32 @@ rect.active {
 	  		
 	  	</div>
 
+	  	<div class="tab-pane fade in active" id="sample-selection">
+			<div class="refinery-header">
+				<span class="refinery-header-left">	
+					<h3>Sample Selection</h3>
+				</span>
+			</div>
+
+
+<script type="text/template" id="sample-selector-facet-value-view-template">
+	<span><%= name %></span> <span><%= count %></span>: <span><%= isSelected %></span>      	
+</script>
+				
+<script type="text/template" id="sample-selector-facet-view-template">
+    <div class="view">
+      <b><span><%= name %></span></b> [<span><%= count %><span>]
+      	<ul class="facet-value-list"></ul>      	
+    </div>
+</script>
+								
+			<div id="sample-selector-facet-view" style="background-color: yellow;">
+			</div>
+				
+	  		
+	  	</div>
+
+
 	</div>
 			
 	{% else %}
@@ -447,8 +474,11 @@ rect.active {
 	    
     <script type="text/javascript" src="{{ STATIC_URL }}js/d3/d3.v2.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/d3/fisheye.js"></script>
-    <script type="text/javascript" src="{{ STATIC_URL }}js/underscore/underscore-min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/bootbox/bootbox.min.js"></script>
+
+    <script type="text/javascript" src="{{ STATIC_URL }}js/underscore/underscore.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/backbone/backbone.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/backbone-relational/backbone-relational.js"></script>
 
 	<!-- Refinery libraries -->
 	<script type="text/javascript">
@@ -475,6 +505,7 @@ rect.active {
     <script type="text/javascript" src="{{ STATIC_URL }}js/refinery/solr/solr_client.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/refinery/solr/solr_query.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/refinery/solr/solr_response.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/refinery/data_set_manager/sample_selector.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/tipsy/jquery.tipsy.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/refinery/viewers/pivot-matrix.js"></script>
 	<script type="text/javascript" src="{{ STATIC_URL }}js/refinery/contents_workflow.js"></script>
