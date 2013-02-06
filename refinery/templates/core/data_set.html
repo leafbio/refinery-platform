@@ -410,15 +410,75 @@ rect.active {
 </script>
 				
 <script type="text/template" id="sample-selector-facet-view-template">
-    <div class="view">
-      <b><span><%= name %></span></b> [<span><%= count %><span>]
-      	<ul class="facet-value-list"></ul>      	
+    <div class="facet-header">
+      <b><span><%= name %></span></b> [<span><%= selectedCount %></span>/<span><%= totalCount %></span>]
     </div>
 </script>
+
+
+		<!--
+		<thead>
+		<td>
+		</td>
+		<% _.each( fields, function( field ) { console.log( field ) %>
+		<td>
+			<b><span class="header"><%= field.get( "name") %></span></b>
+		</td>
+		<% }); %>
+		</thead>
+		-->
+
+
+<script type="text/template" id="sample-selector-document-item-template">
+	<td>
+		<span class="selection"><%= isSelected  %></span>
+	</td>
+	<% _.each( fields, function( field ) { %>
+	<td>
+		<%= field %>
+	</td>
+	<% }); %>
+</script>
+
+<script type="text/template" id="sample-selector-document-collection-template">
+</script>
+
+<script type="text/template" id="sample-selector-field-item-template">
+	<span class="selection"><%= name  %></span>
+</script>
+
+<script type="text/template" id="sample-selector-field-collection-template">
+</script>
+
+
+<script type="text/template" id="sample-selector-document-row-template">
+		<td>
+			<span class="selection"><%= isSelected  %></span>
+		</td>
+		<% _.each( fields, function( field ) { %>
+		<td>
+			<%= field %>
+		</td>
+		<% }); %>
+</script>
+
+<script type="text/template" id="sample-selector-field-list-template">
+		<th>
+		</th>
+		<% _.each( fields, function( field ) { %>
+		<th>
+			<%= field.name %>
+		</th>
+		<% }); %>
+</script>
+
 								
-			<div id="sample-selector-facet-view" style="background-color: yellow;">
+			<div id="sample-selector-facets" style="background-color: yellow;">
+				<div id="sample-selector-facet-list"></div>				
 			</div>
-				
+			
+			<table id="sample-selector-documents" style="background-color: green">				
+			</table>
 	  		
 	  	</div>
 
@@ -478,6 +538,7 @@ rect.active {
 
     <script type="text/javascript" src="{{ STATIC_URL }}js/underscore/underscore.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/backbone/backbone.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/backbone-marionette/backbone.marionette.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/backbone-relational/backbone-relational.js"></script>
 
 	<!-- Refinery libraries -->

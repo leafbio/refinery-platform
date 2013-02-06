@@ -65,7 +65,7 @@
           {% if REFINERY_MAIN_LOGO != "" %}
           	<img style="height: {{ REFINERY_INNER_NAVBAR_HEIGHT }}px" src="{{ STATIC_URL }}{{ REFINERY_MAIN_LOGO }}"/>&nbsp;&nbsp;
           {% endif %}
-          {{REFINERY_INSTANCE_NAME}}</a>
+          <span style="font-weight: normal; font-size: 18pt; font-family: chunk; font-style: normal; text-transform: uppercase;">{{REFINERY_INSTANCE_NAME}}</span></a>
 
 			<p class="navbar-text pull-right">
 		{% if user.is_authenticated %}       
@@ -129,8 +129,11 @@
     <script src="http://code.jquery.com/ui/1.9.1/jquery-ui.min.js"></script>
 
     <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap/docs/assets/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="http://use.edgefonts.net/chunk:n4.js">
         
 	{% block script %}
+	
+
 	{% endblock %}
 
 	<script type="text/javascript">
