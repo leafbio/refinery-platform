@@ -2330,17 +2330,32 @@ var provvisRender = function () {
 
         handleToolbar(graph);
 
+        /* Handle click separation on nodes. */
+        var domNodesetClickTimeout;
         domNodeset.on("click", function (d) {
             if (d3.event.defaultPrevented) return;
+            clearTimeout(domNodesetClickTimeout);
 
-            if (!draggingActive) {
-                handleNodeSelection(d);
-                updateTableContent(d);
-            }
+
+            /* Click event is executed after 100ms unless the double click event below clears the click event timeout.*/
+            domNodesetClickTimeout = setTimeout(function () {
+                if (!draggingActive) {
+                    handleNodeSelection(d);
+                    updateTableContent(d);
+                }
+            }, 200);
         });
 
+        domNodeset.on("dblclick", function (d) {
+            if (d3.event.defaultPrevented) return;
+            clearTimeout(domNodesetClickTimeout);
+
+            /* Double click event is executed when this event is triggered before the click timeout has finished. */
+            handleCollapseExpandNode(d, "e");
+        });
+
+        /* Handle click separation on other dom elements. */
         var bRectClickTimeout;
-        /* Handle click separation. */
         d3.selectAll(".brect, .link, .hLink, .vLine, .hLine", ".cell").on("click", function () {
             if (d3.event.defaultPrevented) return;
             clearTimeout(bRectClickTimeout);
