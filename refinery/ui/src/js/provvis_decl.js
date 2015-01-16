@@ -256,7 +256,7 @@ var provvisDecl = function () {
         this.inputs = d3.map();
         this.outputs = d3.map();
         this.links = d3.map();
-        this.isOutputAnalysis = false;
+        this.isInputAnalysis = false;
     };
 
     Subanalysis.prototype = Object.create(BaseNode.prototype);

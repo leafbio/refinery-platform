@@ -1155,6 +1155,7 @@ var provvisRender = function () {
     };
 
     /* TODO: On expand, preserve highlighting of inner nodes. */
+    /* TODO: In development. */
     /**
      * Sets the visibility of links and (a)nodes when collapsing or expanding analyses.
      * @param d Node.
@@ -1173,6 +1174,107 @@ var provvisRender = function () {
 
         /* Expand. */
         if (keyStroke === "e" && (d.nodeType === "analysis" || d.nodeType === "subanalysis")) {
+
+
+            /* Dynamically adjust layout. */
+            var pos = {col: 0, row: 0},
+                curAN = d,
+                origDepth = vis.graph.l.depth,
+                origWidth = vis.graph.l.width;
+            console.log("#EXPAND");
+            if (d.nodeType === "analysis") {
+                pos.col = d.col;
+                pos.row = d.row;
+            } else if (d.nodeType === "subanalysis") {
+                pos.col = d.col + d.parent.col;
+                pos.row = d.row + d.parent.row;
+                curAN = d.parent;
+            }
+
+            console.log(d);
+            console.log("#POS col: " + pos.col + " row: " + pos.row);
+            console.log("#CHILD: depth: " + d.l.depth + " width: " + d.l.width);
+
+            /* Check grid for neighbors to shift right an below depending on the size of the expanded grid. */
+
+
+            for (var i = 0; i < origDepth; i++) {
+                for (var j = 0; j < origWidth; j++) {
+
+
+
+                    /* Every grid cell, which is not 'undefined' and with col and row greater than pos.col and pos.row, shift by d.l.depth and d.l.width. */
+                    if (vis.graph.l.grid[i][j] && vis.graph.l.grid[i][j] !== "undefined" && vis.graph.l.grid[i][j] !== curAN && (i >= pos.col && j >= pos.row)) {
+
+
+                        /* Dynamically enlarge grid. */
+                        console.log("#CELL " + i + ", " + j);
+                        console.log("col: " + i + " -> " + (i + d.l.depth-1));
+                        console.log("row: " + j + " -> " + (j + d.l.width-1));
+
+
+                        /* Enlarge grid depth. */
+                        var s = vis.graph.l.depth,
+                            t = 0;
+                        if (s < (i + d.l.depth)) {
+                            while (s < (i + d.l.depth)) {
+                                vis.graph.l.grid.push([]);
+                                for (t = 0; t < vis.graph.l.width; t++) {
+                                    vis.graph.l.grid[s][t] = "undefined";
+                                }
+                                s++;
+                            }
+                            vis.graph.l.depth = i + d.l.depth;
+                        }
+
+                        /* Enlarge grid width. */
+                        s = 0;
+                        t = vis.graph.l.width;
+                        if (t < (j + d.l.width)) {
+                            for (;s < vis.graph.l.depth; s++) {
+                                for (t = vis.graph.l.width; t < j + d.l.width; t++) {
+                                    vis.graph.l.grid[s][t] = "undefined";
+                                }
+                            }
+                            vis.graph.l.width = j + d.l.width;
+                        }
+
+
+
+                        /* Move affected cells. */
+                        /* Set new col and row for node. */
+                        var shiftAN = vis.graph.l.grid[i][j];
+                        shiftAN.col = i + d.l.depth-1;
+                        shiftAN.row = j + d.l.width-1;
+
+                        shiftAN.x = shiftAN.col * cell.width;
+                        shiftAN.y = shiftAN.row * cell.height;
+
+                        /* Align selected node. */
+                        updateNode(d3.select("#gNodeId-" + shiftAN.autoId), shiftAN, shiftAN.x, shiftAN.y);
+
+                        /* Align adjacent links. */
+                        updateLink(shiftAN, shiftAN.x, shiftAN.y);
+
+
+                        console.log(vis.graph.l.grid[i][j]);
+                        console.log(vis.graph.l.grid[i + d.l.depth-1][j + d.l.width-1]);
+                        console.log(shiftAN);
+
+                        vis.graph.l.grid[i][j] = "undefined";
+                        vis.graph.l.grid[i + d.l.depth-1][j + d.l.width-1] = shiftAN;
+                        console.log("HERE");
+                        console.log(vis.graph.l.grid[i][j]);
+                        console.log(vis.graph.l.grid[i + d.l.depth-1][j + d.l.width-1]);
+
+                        //updateNodeDoi();
+
+                        console.log(vis.graph.l);
+                        console.log(vis.graph.l.depth);
+                        console.log(vis.graph.l.width);
+                    }
+                }
+            }
 
             /* Set node visibility. */
             d3.select("#nodeId-" + d.autoId).classed("hiddenNode", true);
