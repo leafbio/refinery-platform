@@ -72,19 +72,19 @@ var provvisRender = function () {
             var scaleFactor = 1;
 
             /*switch (true) {
-                case (-2 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.25):
-                    scaleFactor = 0.75;
-                    break;
-                case (0.25 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.5):
-                    scaleFactor = 1.0;
-                    break;
-                case (0.5 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.75):
-                    scaleFactor = 1.25;
-                    break;
-                case (0.75 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 2):
-                    scaleFactor = 1.5;
-                    break;
-            }*/
+             case (-2 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.25):
+             scaleFactor = 0.75;
+             break;
+             case (0.25 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.5):
+             scaleFactor = 1.0;
+             break;
+             case (0.5 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.75):
+             scaleFactor = 1.25;
+             break;
+             case (0.75 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 2):
+             scaleFactor = 1.5;
+             break;
+             }*/
             scaleFactor = 0.75;
 
             /* Update node glyph size. */
@@ -626,7 +626,7 @@ var provvisRender = function () {
                 }
             })
             .classed({
-                "hLink": true, "aHLink": true, "hiddenLink": true
+                "hLink": true, "hiddenLink": true
             })
             .attr("id", function (l) {
                 return "hLinkId-" + l.autoId;
@@ -845,7 +845,7 @@ var provvisRender = function () {
                 }
             })
             .classed({
-                "hLink": true, "saHLink": true, "hiddenLink": true
+                "hLink": true, "hiddenLink": true
             })
             .attr("id", function (l) {
                 return "hLinkId-" + l.autoId;
