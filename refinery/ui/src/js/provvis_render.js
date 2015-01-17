@@ -71,7 +71,7 @@ var provvisRender = function () {
             /* Doi-dependant node glyph scaling factor. */
             var scaleFactor = 1;
 
-            switch (true) {
+            /*switch (true) {
                 case (-2 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 0.25):
                     scaleFactor = 0.75;
                     break;
@@ -84,7 +84,8 @@ var provvisRender = function () {
                 case (0.75 < d.doi.doiWeightedSum && d.doi.doiWeightedSum <= 2):
                     scaleFactor = 1.5;
                     break;
-            }
+            }*/
+            scaleFactor = 0.75;
 
             /* Update node glyph size. */
             if (d.nodeType !== "subanalysis" && d.nodeType !== "analysis") {
