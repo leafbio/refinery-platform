@@ -1224,17 +1224,21 @@ var provvisLayout = function () {
         });
 
         /* Create workflow grid. */
-        graph.saNodes.forEach( function (san) {
+        graph.saNodes.forEach(function (san) {
 
             /* Initialize workflow dimensions. */
-            san.l.depth = d3.max(san.children.values(), function (n) {return n.col;}) + 1;
-            san.l.width = d3.max(san.children.values(), function (n) {return n.row;}) + 1;
+            san.l.depth = d3.max(san.children.values(), function (n) {
+                return n.col;
+            }) + 1;
+            san.l.width = d3.max(san.children.values(), function (n) {
+                return n.row;
+            }) + 1;
 
             /* Init grid. */
             initNodeGrid(san);
 
             /* Set grid cells. */
-            san.children.values().forEach( function (n) {
+            san.children.values().forEach(function (n) {
                 san.l.grid[n.col][n.row] = n;
             });
         });
