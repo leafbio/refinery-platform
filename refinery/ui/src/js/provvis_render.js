@@ -612,7 +612,7 @@ var provvisRender = function () {
 
         /* Draw highlighting links. */
         vis.canvas.append("g").classed({"aHLinks": true}).selectAll(".hLink")
-            .data(graph.aLinks)
+            .data(graph.aLinks.filter(function (l) {return !l.l.gap;}))
             .enter().append("path")
             .attr("d", function (l) {
                 var srcX = (l.source instanceof provvisDecl.Analysis) ? l.source.x : l.source.parent.parent.x,
@@ -634,7 +634,7 @@ var provvisRender = function () {
 
         /* Draw normal links. */
         vis.canvas.append("g").classed({"aLinks": true}).selectAll(".link")
-            .data(graph.aLinks)
+            .data(graph.aLinks.filter(function (l) {return !l.l.gap;}))
             .enter().append("path")
             .attr("d", function (l) {
                 var srcX = (l.source instanceof provvisDecl.Analysis) ? l.source.x : l.source.parent.parent.x,
