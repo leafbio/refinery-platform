@@ -431,60 +431,93 @@ var provvisRender = function () {
         /* When a node is dragged to a negative col or row,
          * the graph is shifted by the absolute amount of the negative cell count.
          */
-        if (n.col < 0 || n.row < 0) {
-            var shiftCols = n.col < 0 ? Math.abs(n.col) : 0,
+        var shiftCols = 0,
+            shiftRows = 0,
+            i = 0,
+            j = 0;
+
+        if (n.col < 0 || n.row < 0 || n.col >= vis.graph.l.depth || n.row >= vis.graph.l.width) {
+            if (n.col < 0 || n.row < 0) {
+                shiftCols = n.col < 0 ? Math.abs(n.col) : 0;
                 shiftRows = n.row < 0 ? Math.abs(n.row) : 0;
 
-            var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
-                oldTransCoords = d3.transform(vis.canvas.attr("transform")),
-                x = oldTransCoords.translate[0],
-                y = oldTransCoords.translate[1],
-                s = oldTransCoords.scale;
+                var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
+                    oldTransCoords = d3.transform(vis.canvas.attr("transform")),
+                    x = oldTransCoords.translate[0],
+                    y = oldTransCoords.translate[1],
+                    s = oldTransCoords.scale;
 
-            /* Transform vis to the cell out of bound. */
-            vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
+                /* Transform vis to the cell out of bound. */
+                vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
+                vis.zoom.translate([parseInt(x + deltaTrans.x,10), parseInt(y + deltaTrans.y,10)]);
+                vis.zoom.scale(parseFloat(s));
 
+                vis.graph.aNodes.forEach(function (an) {
+                    an.col += shiftCols;
+                    an.row += shiftRows;
+                    an.x = an.col * cell.width;
+                    an.y = an.row * cell.height;
+
+                    updateNode(d3.select("#gNodeId-" + an.autoId), an, an.x, an.y);
+                    updateLink(an, an.x, an.y);
+                });
+            } else if (n.col >= vis.graph.l.depth || n.row >= vis.graph.l.width) {
+                shiftCols = n.col >= vis.graph.l.depth ? n.col - vis.graph.l.depth + 1 : 0;
+                shiftRows = n.row >= vis.graph.l.width ? n.row - vis.graph.l.width + 1 : 0;
+            }
+
+            /* Enlarge grid. */
+
+            /* Add columns. */
+            for (i = 0; i < shiftCols;i++) {
+                vis.graph.l.grid.push([]);
+                for (j = 0; j < vis.graph.l.width; j++) {
+                    vis.graph.l.grid[vis.graph.l.depth+i][j] = "undefined";
+                }
+            }
+
+            vis.graph.l.depth += shiftCols;
+
+            /* Add rows. */
+            for(i = 0; i < shiftRows;i++) {
+                for (j = 0; j < vis.graph.l.depth; j++) {
+                    vis.graph.l.grid[j][vis.graph.l.width+i] = "undefined";
+                }
+            }
+
+            vis.graph.l.width += shiftRows;
+
+            /* Update grid dom. */
+            updateGrid(vis.graph);
+
+            for(i = 0; i < vis.graph.l.depth;i++) {
+                for(j = 0; j < vis.graph.l.width;j++) {
+                    vis.graph.l.grid[i][j] = "undefined";
+                }
+            }
+
+            /* Update grid cells. */
             vis.graph.aNodes.forEach(function (an) {
-                an.col += shiftCols;
-                an.row += shiftRows;
-                an.x = an.col * cell.width;
-                an.y = an.row * cell.height;
-
-                updateNode(d3.select("#gNodeId-" + an.autoId), an, an.x, an.y);
-                updateLink(an, an.x, an.y);
+                vis.graph.l.grid[an.col][an.row] = an;
             });
 
+            /* Align selected node. */
+            updateNode(self, n, n.x, n.y);
 
-            /* TODO: Update grid. */
+            /* Align adjacent links. */
+            updateLink(n, n.x, n.y);
+        } else {
+            /* TODO: May reduce grid to min/max column row cells.*/
 
+            n.x = n.col * cell.width;
+            n.y = n.row * cell.height;
 
+            /* Align selected node. */
+            updateNode(self, n, n.x, n.y);
+
+            /* Align adjacent links. */
+            updateLink(n, n.x, n.y);
         }
-
-        /*
-
-         */
-        /* Update grid. */
-        /*
-
-         if (n.hidden) {
-         for (var j = n.row, k = 0; j < n.row+draggedSubanalyses.length; j++, k++) {
-         vis.graph.l.grid[n.col][j] = draggedSubanalyses[k];
-         }
-         } else {
-         vis.graph.l.grid[n.col][n.row] = n;
-         }
-
-         console.log(vis.graph.l.grid);
-         */
-
-        n.x = n.col * cell.width;
-        n.y = n.row * cell.height;
-
-        /* Align selected node. */
-        updateNode(self, n, n.x, n.y);
-
-        /* Align adjacent links. */
-        updateLink(n, n.x, n.y);
 
         setTimeout(function () {
             draggingActive = false;
