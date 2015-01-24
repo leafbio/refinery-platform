@@ -435,6 +435,15 @@ var provvisRender = function () {
             var shiftCols = n.col < 0 ? Math.abs(n.col) : 0,
                 shiftRows = n.row < 0 ? Math.abs(n.row) : 0;
 
+            var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
+                oldTransCoords = d3.transform(vis.canvas.attr("transform")),
+                x = oldTransCoords.translate[0],
+                y = oldTransCoords.translate[1],
+                s = oldTransCoords.scale;
+
+            /* Transform vis to the cell out of bound. */
+            vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
+
             vis.graph.aNodes.forEach(function (an) {
                 an.col += shiftCols;
                 an.row += shiftRows;
