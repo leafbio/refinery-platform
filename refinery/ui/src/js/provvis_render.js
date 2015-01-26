@@ -397,14 +397,13 @@ var provvisRender = function () {
     };
 
     /**
-     * Drag end listener.
+     *
+     * @param n Analysis node.
+     * @param dom Analysis node as dom object.
+     * @param action Drag or expand action.
      */
-    var dragEnd = function (n) {
-        var self = d3.select(this);
-
-        /* Update data. */
-        n.col = Math.round(n.x / cell.width);
-        n.row = Math.round(n.y / cell.height);
+    var shiftAnalysisNode = function (n, dom, action) {
+        var self = dom;
 
         /* When a node is dragged to a negative col or row,
          * the graph is shifted by the absolute amount of the negative cell count.
@@ -419,16 +418,19 @@ var provvisRender = function () {
                 shiftCols = n.col < 0 ? Math.abs(n.col) : 0;
                 shiftRows = n.row < 0 ? Math.abs(n.row) : 0;
 
-                var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
-                    oldTransCoords = d3.transform(vis.canvas.attr("transform")),
-                    x = oldTransCoords.translate[0],
-                    y = oldTransCoords.translate[1],
-                    s = oldTransCoords.scale;
+                /* TODO: Revise bug. */
+                //if (action === "dragging") {
+                    /*var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
+                        oldTransCoords = d3.transform(vis.canvas.attr("transform")),
+                        x = oldTransCoords.translate[0],
+                        y = oldTransCoords.translate[1],
+                        s = oldTransCoords.scale[0];
 
-                /* Transform vis to the cell out of bound. */
-                vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
-                vis.zoom.translate([parseInt(x + deltaTrans.x, 10), parseInt(y + deltaTrans.y, 10)]);
-                vis.zoom.scale(parseFloat(s));
+                    *//* Transform vis to the cell out of bound. *//*
+                    vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
+                    vis.zoom.translate([parseInt(x + deltaTrans.x, 10), parseInt(y + deltaTrans.y, 10)]);
+                    vis.zoom.scale(parseFloat(s));*/
+                //}
 
                 vis.graph.aNodes.forEach(function (an) {
                     an.col += shiftCols;
@@ -500,7 +502,22 @@ var provvisRender = function () {
             /* Align adjacent links. */
             updateLink(n, n.x, n.y);
         }
+    };
 
+    /**
+     * Drag end listener.
+     */
+    var dragEnd = function (n) {
+        var self = d3.select(this);
+
+        /* Update data. */
+        n.col = Math.round(n.x / cell.width);
+        n.row = Math.round(n.y / cell.height);
+
+        /* Shift analysis node. */
+        shiftAnalysisNode(n, self, "dragging");
+
+        /* Prevent other mouseevents during dragging. */
         setTimeout(function () {
             draggingActive = false;
         }, 200);
@@ -1296,42 +1313,95 @@ var provvisRender = function () {
                 /* Check if grid cells for expanded subanalyses are occupied. */
 
                 /* Heuristics down- and upwards. */
-                var hDown = {freeSpace: 1, addRows: 0, rowShift: 0},
-                    hUp = {freeSpace: 1, addRows: 0, rowShift: 0};
+                var hDown = {freeSpace: 1, fullSpace: 1, addRows: 0, rowShift: 0},
+                    hUp = {freeSpace: 1, fullSpace: 1, addRows: 0, rowShift: 0};
 
                 /* Check free space downwards, compute rows to shift and rows to add to the grid. */
                 i = pos.row + 1;
-                while (i < vis.graph.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
+                while (i < vis.graph.l.width && i < pos.row+ d.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
                     i++;
                     hDown.freeSpace++;
                 }
+                j = i;
+                hDown.fullSpace = hDown.freeSpace;
+                while (j < pos.row+ d.l.width) {
+                    if (j >= vis.graph.l.width || vis.graph.l.grid[pos.col][j] === "undefined") {
+                        hDown.fullSpace++;
+                    }
+                    j++;
+                }
 
-                hDown.rowShift = pos.row + d.l.width - i;
+                hDown.rowShift = (i === vis.graph.l.width) ? 0 : pos.row + d.l.width - i;
                 hDown.addRows = pos.row + d.l.width + vis.graph.l.width - i - vis.graph.l.width;
 
                 /* Check free space upwards, compute rows to shift and rows to add to the grid. */
                 i = pos.row - 1;
-                while (i >= 0 && vis.graph.l.grid[pos.col][i] === "undefined") {
+                while (i >= 0 && i > pos.row - d.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
                     i--;
                     hUp.freeSpace++;
+                }
+                j = i;
+                hUp.fullSpace = hUp.freeSpace;
+                while (j > pos.row - d.l.width) {
+                    if (j < 0 || vis.graph.l.grid[pos.col][j] === "undefined") {
+                        hUp.fullSpace++;
+                    }
+                    j--;
                 }
 
                 hUp.rowShift = (i === -1) ? 0 : Math.abs(d.l.width - hUp.freeSpace);
                 hUp.addRows = (pos.row - d.l.width - i);
                 hUp.addRows = (hUp.addRows < 0) ? Math.abs(hUp.addRows) : 0;
 
+                var k = 0,
+                    curCell = "undefined";
+
                 /* Expand downwards. */
-                if (hDown.freeSpace - hDown.rowShift >= hUp.freeSpace - hUp.rowShift) {
-                    console.log("#EXPAND DOWNWARDS " + d.autoId);
+                if (hDown.fullSpace - hDown.rowShift >= hUp.fullSpace - hUp.rowShift) {
+                    //console.log("#EXPAND DOWNWARDS " + d.autoId);
+
+                    /* TODO: Revise. */
+                    /* Shift cells below. */
+                    if (hDown.rowShift > 0) {
+                        for (k = vis.graph.l.width - 1; k >= pos.row + hDown.freeSpace; k--) {
+                            curCell = vis.graph.l.grid[pos.col][k];
+                            if (curCell !== "undefined") {
+                                dragStartAnalysisPos = {col: curCell.col, row: curCell.row};
+                                curCell.row = curCell.row + hDown.rowShift;
+                                curCell.x = curCell.col * cell.width;
+                                curCell.y = curCell.row * cell.height;
+                                shiftAnalysisNode(curCell, d3.select("#gNodeId-" + curCell.autoId), "expand");
+                            }
+                        }
+                    }
                 }
                 /* Expand upwards. */
                 else {
-                    console.log("#EXPAND UPWARDS " + d.autoId);
+                    //console.log("#EXPAND UPWARDS " + d.autoId);
+
+                    /* TODO: Revise. */
+                    /* Shift cells above. */
+                    if (hUp.rowShift > 0) {
+                        for (k = 0; k < pos.row - (hUp.freeSpace-1); k++) {
+                            curCell = vis.graph.l.grid[pos.col][k];
+                            if (curCell !== "undefined") {
+                                dragStartAnalysisPos = {col: curCell.col, row: curCell.row};
+                                curCell.row = curCell.row - hUp.rowShift;
+                                curCell.x = curCell.col * cell.width;
+                                curCell.y = curCell.row * cell.height;
+                                shiftAnalysisNode(curCell, d3.select("#gNodeId-" + curCell.autoId), "expand");
+                            }
+                        }
+                    }
+
+                    dragStartAnalysisPos = {col: d.col, row: d.row};
+                    d.row = d.row - d.l.width + 1;
+                    d.x = d.col * cell.width;
+                    d.y = d.row * cell.height;
+
                 }
-
-                /* TODO: Update grid cells. */
-
-
+                /* Upgrade grid cells. */
+                shiftAnalysisNode(d, d3.select("#gNodeId-" + d.autoId), "expand");
             }
 
             /* Set node visibility. */
