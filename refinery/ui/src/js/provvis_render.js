@@ -1418,21 +1418,54 @@ var provvisRender = function () {
             /* Shift horizontally. */
             else if (d.nodeType === "subanalysis") {
 
-                /* Shift rows below by workflow grid width. */
-                for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
-                    if (i < d.row + d.l.width - 1) {
-                        d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
-                    } else if (i > d.row + d.l.width - 1) {
-                        var curSA = d.parent.l.grid[0][i];
-                        curSA.row = i;
-                        curSA.y = curSA.row * cell.height;
-                        updateNode(d3.select("#gNodeId-" + curSA.autoId), curSA, curSA.x, curSA.y);
+                /* TODO: Only shift when not enough free space is available. */
+                if (true) {
+                    /* Shift rows below by workflow grid width. */
+                    for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
+                        if (i < d.row + d.l.width - 1) {
+                            d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
+                        } else if (i > d.row + d.l.width - 1) {
+                            var curSA = d.parent.l.grid[0][i];
+                            curSA.row = i;
+                            curSA.y = curSA.row * cell.height;
+                            updateNode(d3.select("#gNodeId-" + curSA.autoId), curSA, curSA.x, curSA.y);
 
-                        /* TODO: Revise. */
-                        //updateLink(curSA, curSA.x, curSA.y);
+                            /* TODO: Revise. */
+                            //updateLink(curSA, curSA.x, curSA.y);
+                        }
+                    }
+                    d.parent.l.width += d.l.width - 1;
+                }
+
+                /* Only shift when no subanalysis is expanded yet. */
+                var isAnyChildNodeVisible = d.parent.children.values().some( function (san) {
+                    return san.children.values().some( function (n) {
+                        return !n.hidden;
+                    });
+                });
+
+                /* TODO: Only shift if there is not enough free space. */
+
+
+                /* Shift analyses right. */
+                if (!isAnyChildNodeVisible) {
+                    for (i = vis.graph.l.depth - 1; i > d.parent.col; i--) {
+                        for (j = 0; j < vis.graph.l.width; j++) {
+
+                            /* Acutal analyses to shift. */
+                            if (vis.graph.l.grid[i][j] && vis.graph.l.grid[i][j] !== "undefined") {
+                                var curA = vis.graph.l.grid[i][j];
+
+                                dragStartAnalysisPos = {col: curA.col, row: curA.row};
+                                curA.col = curA.col + d.l.depth;
+                                curA.x = curA.col * cell.width;
+
+                                /*Upgrade grid cells.*/
+                                shiftAnalysisNode(curA, d3.select("#gNodeId-" + curA.autoId), "expand");
+                            }
+                        }
                     }
                 }
-                d.parent.l.width += d.l.width - 1;
             }
 
             /* Set node visibility. */
