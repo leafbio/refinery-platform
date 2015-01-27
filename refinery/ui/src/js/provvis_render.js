@@ -238,14 +238,14 @@ var provvisRender = function () {
     };
 
     /**
-     * Update node through translation while dragging or on dragend.
+     * Update node coordinates through translation.
      * @param dom Node dom element.
      * @param n Node object element.
      * @param x The current x-coordinate for the node.
      * @param y The current y-coordinate for the node.
      */
     var updateNode = function (dom, n, x, y) {
-        /* Drag selected node. */
+        /* Set selected node coordinates. */
         dom.attr("transform", "translate(" + x + "," + y + ")");
     };
 
@@ -420,16 +420,18 @@ var provvisRender = function () {
 
                 /* TODO: Revise bug. */
                 //if (action === "dragging") {
-                    /*var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
-                        oldTransCoords = d3.transform(vis.canvas.attr("transform")),
-                        x = oldTransCoords.translate[0],
-                        y = oldTransCoords.translate[1],
-                        s = oldTransCoords.scale[0];
+                /*var deltaTrans = {x: -shiftCols * cell.width, y: -shiftRows * cell.height},
+                 oldTransCoords = d3.transform(vis.canvas.attr("transform")),
+                 x = oldTransCoords.translate[0],
+                 y = oldTransCoords.translate[1],
+                 s = oldTransCoords.scale[0];
 
-                    *//* Transform vis to the cell out of bound. *//*
-                    vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
-                    vis.zoom.translate([parseInt(x + deltaTrans.x, 10), parseInt(y + deltaTrans.y, 10)]);
-                    vis.zoom.scale(parseFloat(s));*/
+                 */
+                /* Transform vis to the cell out of bound. */
+                /*
+                 vis.canvas.attr("transform", "translate(" + (x + deltaTrans.x) + "," + (y + deltaTrans.y) + ")scale(" + s + ")");
+                 vis.zoom.translate([parseInt(x + deltaTrans.x, 10), parseInt(y + deltaTrans.y, 10)]);
+                 vis.zoom.scale(parseFloat(s));*/
                 //}
 
                 vis.graph.aNodes.forEach(function (an) {
@@ -1225,18 +1227,27 @@ var provvisRender = function () {
      * @returns {{x: {min: *, max: *}, y: {min: *, max: *}}} Min and max x, y coords.
      */
     var getBBoxCords = function (n, offset) {
-        var minX = d3.min(n.children.values(), function (d) {
+        var minX, minY, maxX, maxY = 0;
+
+        if (n.children.empty() || (!n.children.empty() && n.children.values()[0].hidden)) {
+            minX = (-cell.width / 2 + offset);
+            maxX = (cell.width / 2 - offset);
+            minY = (-cell.width / 2 + offset);
+            maxY = (cell.width / 2 - offset);
+        } else {
+            minX = d3.min(n.children.values(), function (d) {
                 return d.x - cell.width / 2 + offset;
-            }),
+            });
             maxX = d3.max(n.children.values(), function (d) {
                 return d.x + cell.width / 2 - offset;
-            }),
+            });
             minY = d3.min(n.children.values(), function (d) {
                 return d.y - cell.height / 2 + offset;
-            }),
+            });
             maxY = d3.max(n.children.values(), function (d) {
                 return d.y + cell.height / 2 - offset;
             });
+        }
 
         return {x: {min: minX, max: maxX}, y: {min: minY, max: maxY}};
     };
@@ -1295,7 +1306,6 @@ var provvisRender = function () {
         /* Expand. */
         if (keyStroke === "e" && (d.nodeType === "analysis" || d.nodeType === "subanalysis")) {
 
-
             /* TODO: Prototype implementation for dynamic layout. */
             /* Dynamically adjust layout. */
 
@@ -1307,24 +1317,26 @@ var provvisRender = function () {
                 pos.row = d.row + d.parent.row;
             }
 
+            /* Heuristics for down, up, left and right expansion. */
+            var hLeft = {freeSpace: 1, fullSpace: 1, addCols: 0, colShift: 0},
+                hRight = {freeSpace: 1, fullSpace: 1, addCols: 0, colShift: 0},
+                hDown = {freeSpace: 1, fullSpace: 1, addRows: 0, rowShift: 0},
+                hUp = {freeSpace: 1, fullSpace: 1, addRows: 0, rowShift: 0};
+
             /* Shift vertically. */
             if (d.nodeType === "analysis") {
 
                 /* Check if grid cells for expanded subanalyses are occupied. */
 
-                /* Heuristics down- and upwards. */
-                var hDown = {freeSpace: 1, fullSpace: 1, addRows: 0, rowShift: 0},
-                    hUp = {freeSpace: 1, fullSpace: 1, addRows: 0, rowShift: 0};
-
                 /* Check free space downwards, compute rows to shift and rows to add to the grid. */
                 i = pos.row + 1;
-                while (i < vis.graph.l.width && i < pos.row+ d.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
+                while (i < vis.graph.l.width && i < pos.row + d.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
                     i++;
                     hDown.freeSpace++;
                 }
                 j = i;
                 hDown.fullSpace = hDown.freeSpace;
-                while (j < pos.row+ d.l.width) {
+                while (j < pos.row + d.l.width) {
                     if (j >= vis.graph.l.width || vis.graph.l.grid[pos.col][j] === "undefined") {
                         hDown.fullSpace++;
                     }
@@ -1382,7 +1394,7 @@ var provvisRender = function () {
                     /* TODO: Revise. */
                     /* Shift cells above. */
                     if (hUp.rowShift > 0) {
-                        for (k = 0; k < pos.row - (hUp.freeSpace-1); k++) {
+                        for (k = 0; k < pos.row - (hUp.freeSpace - 1); k++) {
                             curCell = vis.graph.l.grid[pos.col][k];
                             if (curCell !== "undefined") {
                                 dragStartAnalysisPos = {col: curCell.col, row: curCell.row};
@@ -1402,6 +1414,25 @@ var provvisRender = function () {
                 }
                 /* Upgrade grid cells. */
                 shiftAnalysisNode(d, d3.select("#gNodeId-" + d.autoId), "expand");
+            }
+            /* Shift horizontally. */
+            else if (d.nodeType === "subanalysis") {
+
+                /* Shift rows below by workflow grid width. */
+                for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
+                    if (i < d.row + d.l.width - 1) {
+                        d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
+                    } else if (i > d.row + d.l.width - 1) {
+                        var curSA = d.parent.l.grid[0][i];
+                        curSA.row = i;
+                        curSA.y = curSA.row * cell.height;
+                        updateNode(d3.select("#gNodeId-" + curSA.autoId), curSA, curSA.x, curSA.y);
+
+                        /* TODO: Revise. */
+                        //updateLink(curSA, curSA.x, curSA.y);
+                    }
+                }
+                d.parent.l.width += d.l.width - 1;
             }
 
             /* Set node visibility. */
