@@ -233,6 +233,9 @@ var provvisDecl = function () {
         this.links = d3.map();
 
         this.wfName = "";
+
+        this.layer = Object.create(null);
+        this.aggregation = Object.create(null);
     };
 
     Analysis.prototype = Object.create(BaseNode.prototype);
