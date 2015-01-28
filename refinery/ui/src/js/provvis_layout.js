@@ -1075,8 +1075,13 @@ var provvisLayout = function () {
 
     /**
      * Extract and set layered nodes for analysis nodes.
+     * @param bclgNodes Barcyenter sorted, layered and grouped analysis nodes.
      */
-    var extractLayeredNodes = function () {
+    var extractLayeredNodes = function (bclgNodes) {
+
+        /* TODO: For each column, for each analysis, check successors.
+         * If there are at least two analyses sharing the same input files, layer them.
+         */
 
     };
 
@@ -1134,7 +1139,7 @@ var provvisLayout = function () {
 
 
             /* TODO: Extract and create layered nodes. */
-            extractLayeredNodes();
+            extractLayeredNodes(bclgNodes);
 
 
 
