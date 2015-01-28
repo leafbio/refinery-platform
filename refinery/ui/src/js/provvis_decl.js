@@ -262,6 +262,44 @@ var provvisDecl = function () {
     Subanalysis.prototype.constructor = Subanalysis;
 
     /**
+     * Constructor function for the layered node data structure.
+     *
+     * @param id
+     * @param parent
+     * @param hidden
+     * @constructor
+     */
+    var LayeredNode = function (id, parent, hidden) {
+        BaseNode.call(this, id, "layeredNode", parent, hidden);
+
+        this.inputs = d3.map();
+        this.outputs = d3.map();
+        this.links = d3.map();
+    };
+
+    LayeredNode.prototype = Object.create(BaseNode.prototype);
+    LayeredNode.prototype.constructor = LayeredNode;
+
+    /**
+     * Constructor function for the aggregated node data structure.
+     *
+     * @param id
+     * @param parent
+     * @param hidden
+     * @constructor
+     */
+    var AggregatedNode = function (id, parent, hidden) {
+        BaseNode.call(this, id, "aggregatedNode", parent, hidden);
+
+        this.inputs = d3.map();
+        this.outputs = d3.map();
+        this.links = d3.map();
+    };
+
+    AggregatedNode.prototype = Object.create(BaseNode.prototype);
+    AggregatedNode.prototype.constructor = AggregatedNode;
+
+    /**
      * Constructor function for the link data structure.
      *
      * @param id
