@@ -1119,7 +1119,7 @@ var provvisLayout = function () {
             inputs: [],
             outputs: [],
             workflowName: "",
-            workflowParamaters: Object.create(null),
+            workflowParams: Object.create(null),
             numInstances: 0
 
         };
