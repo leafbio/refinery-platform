@@ -1572,13 +1572,17 @@ var provvisRender = function () {
 
             /* TODO: Prototype implementation for dynamic layout. */
 
-            /* TODO: Shrink graph grid columns. */
+            var collapseDepth = 0;
+
+            /* Shrink graph grid columns. */
             if (d.nodeType === "subanalysis") {
                 pos.col = d.parent.col;
                 pos.row = d.parent.row;
+                collapseDepth = d.l.depth;
             } else {
                 pos.col = d.parent.parent.col;
                 pos.row = d.parent.parent.row;
+                collapseDepth = d.parent.l.depth;
             }
 
             /* Shrink grid by columns. */
@@ -1589,9 +1593,11 @@ var provvisRender = function () {
             };
 
             /* Check for empty columns and remove them. */
-            for (i = pos.col + d.l.depth; i > pos.col && i < vis.graph.l.depth; i--) {
+            for (i = pos.col + collapseDepth-1; i > pos.col && i < vis.graph.l.depth; i--) {
                 if (!colIsUsed(i)) {
                     vis.graph.l.grid.splice(i,1);
+                    i++;
+
                 }
             }
 
