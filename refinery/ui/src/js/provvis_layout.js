@@ -1110,12 +1110,38 @@ var provvisLayout = function () {
          *   - TOPOLOGY: matching file-file connections but different workflow and different workflow parameters.
          */
 
-        console.log(bclgNodes);
 
+        /* Pattern data-structure. */
+
+        /* Pattern node object */
+        var pn =
+        {
+            inputs: [],
+            outputs: [],
+            workflowName: "",
+            workflowParamaters: Object.create(null),
+            numInstances: 0
+
+        };
+
+        /* Pattern. */
+        var p =
+        {
+            startCol: 0,
+            endCol: 0,
+            p: []
+        };
+
+        /* Pattern container. */
+        var patterns = [];
+
+        /* Provenance layering algorithm. */
         for (var i = 0; i < bclgNodes.length; i++) {
-
+            //console.log("layer " + i);
+            for (var j = 0; j < bclgNodes[i].length; j++) {
+                //console.log(bclgNodes[i][j]);
+            }
         }
-
     };
 
 
