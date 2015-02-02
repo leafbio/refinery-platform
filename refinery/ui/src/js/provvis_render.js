@@ -1620,9 +1620,32 @@ var provvisRender = function () {
                         }
                     }
                 }
+
+                /* Tighten subanalysis nodes vertically. */
+                if (!d.hidden) {
+                    var nextRow = 0;
+                    curAN.children.values().sort(function (a, b) {
+                        return a.row - b.row;
+                    }).forEach(function (san) {
+
+                        /* Set current row. */
+                        san.row = nextRow;
+                        san.y = san.row * cell.height;
+                        updateNode(d3.select("#gNodeId-" + san.autoId), san, san.x, san.y);
+
+                        /* Set next row. */
+                        if (san === d.parent) {
+                            san.parent.l.grid[0].splice(san.row + 1, san.l.width - 1);
+                            curAN.l.width -= san.l.width - 1;
+                            nextRow++;
+                        } else if (!san.children.empty() && san.children.values()[0].hidden) {
+                            nextRow++;
+                        } else {
+                            nextRow += san.l.width;
+                        }
+                    });
+                }
             }
-
-
             vis.graph.l.depth = vis.graph.l.grid.length;
 
             /* Update analysis cols and rows. */
@@ -1726,6 +1749,18 @@ var provvisRender = function () {
                 updateLink(d.parent, d.parent.x, d.parent.y);
 
             } else {
+                /* Compute bounding box for analysis child nodes. */
+                anBBoxCoords = getAnalysisBBoxCoords(d.parent.parent);
+
+                /* Adjust analysis bounding box. */
+                d3.selectAll("#BBoxId-" + d.parent.parent.autoId + ", #aBBClipId-" + d.parent.parent.autoId).selectAll("rect")
+                    .attr("width", function () {
+                        return anBBoxCoords.x.max - anBBoxCoords.x.min;
+                    })
+                    .attr("height", function () {
+                        return anBBoxCoords.y.max - anBBoxCoords.y.min;
+                    });
+
                 /* If the selected subanalysis is the last remaining to collapse, adjust bounding box and clippath. */
                 if (!d.parent.parent.children.values().some(function (san) {
                     return san.hidden;
