@@ -234,8 +234,7 @@ var provvisDecl = function () {
 
         this.wfName = "";
 
-        this.layer = Object.create(null);
-        this.aggregation = Object.create(null);
+        this.macro = Object.create(null);
     };
 
     Analysis.prototype = Object.create(BaseNode.prototype);
@@ -265,42 +264,55 @@ var provvisDecl = function () {
     Subanalysis.prototype.constructor = Subanalysis;
 
     /**
-     * Constructor function for the layered node data structure.
+     * Constructor function for the aggregated macro node data structure.
      *
      * @param id
      * @param parent
      * @param hidden
      * @constructor
      */
-    var LayeredNode = function (id, parent, hidden) {
-        BaseNode.call(this, id, "layeredNode", parent, hidden);
+    var Macro = function (id, parent, hidden) {
+        BaseNode.call(this, id, "macro", parent, hidden);
 
         this.inputs = d3.map();
         this.outputs = d3.map();
         this.links = d3.map();
     };
 
-    LayeredNode.prototype = Object.create(BaseNode.prototype);
-    LayeredNode.prototype.constructor = LayeredNode;
+    Macro.prototype = Object.create(BaseNode.prototype);
+    Macro.prototype.constructor = Macro;
 
     /**
-     * Constructor function for the aggregated node data structure.
+     * Constructor function for the provenance layered node data structure.
      *
      * @param id
      * @param parent
      * @param hidden
      * @constructor
      */
-    var AggregatedNode = function (id, parent, hidden) {
-        BaseNode.call(this, id, "aggregatedNode", parent, hidden);
+    var Layer = function (id, parent, hidden) {
+        Macro.call(this, id, "layer", parent, hidden);
 
-        this.inputs = d3.map();
-        this.outputs = d3.map();
-        this.links = d3.map();
     };
 
-    AggregatedNode.prototype = Object.create(BaseNode.prototype);
-    AggregatedNode.prototype.constructor = AggregatedNode;
+    Layer.prototype = Object.create(Macro.prototype);
+    Layer.prototype.constructor = Layer;
+
+    /**
+     * Constructor function for the aggregated node sequence data structure.
+     *
+     * @param id
+     * @param parent
+     * @param hidden
+     * @constructor
+     */
+    var Sequence = function (id, parent, hidden) {
+        Macro.call(this, id, "sequence", parent, hidden);
+
+    };
+
+    Sequence.prototype = Object.create(Macro.prototype);
+    Sequence.prototype.constructor = Sequence;
 
     /**
      * Constructor function for the link data structure.

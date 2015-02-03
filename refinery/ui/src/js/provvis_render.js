@@ -1454,7 +1454,7 @@ var provvisRender = function () {
                         for (i = vis.graph.l.depth - 1; i > d.parent.col; i--) {
                             for (j = 0; j < vis.graph.l.width; j++) {
 
-                                /* Acutal analyses to shift. */
+                                /* Actual analyses to shift. */
                                 if (vis.graph.l.grid[i][j] && vis.graph.l.grid[i][j] !== "undefined") {
                                     curAN = vis.graph.l.grid[i][j];
 
@@ -1474,7 +1474,7 @@ var provvisRender = function () {
                     /* Shift analyses. */
                     for (i = vis.graph.l.width - 1; i > d.parent.row; i--) {
 
-                        /* Acutal analyses to shift. */
+                        /* Actual analyses to shift. */
                         if (vis.graph.l.grid[pos.col][i] && vis.graph.l.grid[pos.col][i] !== "undefined") {
                             curAN = vis.graph.l.grid[pos.col][i];
 
@@ -1580,7 +1580,7 @@ var provvisRender = function () {
 
             /* Shrink grid by columns. */
             var colIsUsed = function (colIndex) {
-                return vis.graph.l.grid[colIndex].some( function (c) {
+                return vis.graph.l.grid[colIndex] && vis.graph.l.grid[colIndex].some( function (c) {
                     return c !== "undefined";
                 });
             };
