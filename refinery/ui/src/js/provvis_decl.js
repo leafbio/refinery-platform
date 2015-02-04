@@ -433,17 +433,6 @@ var provvisDecl = function () {
         };
     };
 
-    /*    */
-    /**
-     * Support view only showing analysis within a time-gradient background.
-     *
-     * @constructor
-     */
-    /*
-     var SupportView = function () {
-
-     };*/
-
     /**
      * Publish constructor function declarations.
      */
@@ -453,6 +442,9 @@ var provvisDecl = function () {
         Node: Node,
         Analysis: Analysis,
         Subanalysis: Subanalysis,
+        Macro: Macro,
+        Layer: Layer,
+        Motif: Motif,
         Link: Link,
         ProvVis: ProvVis,
         ProvGraph: ProvGraph

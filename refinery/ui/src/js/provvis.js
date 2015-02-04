@@ -767,6 +767,9 @@ var provvis = function () {
                 /* Compute layout. */
                 provvisLayout.runLayout(vis.graph);
 
+                /* Discover and and inject motifs. */
+                provvisMotifs.runMotifs(vis.graph);
+
                 /* Render graph. */
                 provvisRender.runRender(vis);
             });
