@@ -299,20 +299,23 @@ var provvisDecl = function () {
     Layer.prototype.constructor = Layer;
 
     /**
-     * Constructor function for the aggregated node sequence data structure.
+     * Constructor function for the motif data structure.
      *
      * @param id
      * @param parent
      * @param hidden
      * @constructor
      */
-    var Sequence = function (id, parent, hidden) {
-        Macro.call(this, id, "sequence", parent, hidden);
+    var Motif = function (id, parent, hidden) {
+        BaseNode.call(this, id, "motif", parent, hidden);
 
+        this.inputs = d3.map();
+        this.outputs = d3.map();
+        this.links = d3.map();
     };
 
-    Sequence.prototype = Object.create(Macro.prototype);
-    Sequence.prototype.constructor = Sequence;
+    Motif.prototype = Object.create(BaseNode.prototype);
+    Motif.prototype.constructor = Motif;
 
     /**
      * Constructor function for the link data structure.
