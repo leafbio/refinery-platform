@@ -1082,6 +1082,7 @@ var provvisLayout = function () {
         /* ANALYSIS LAYOUT. */
         /* TODO: Refine and cleanup */
 
+        var bclgNodes = [];
         var startANodes = [];
         startANodes.push(graph.dataset);
         var tsANodes = topSortNodes(startANodes, graph.aNodes.length, graph);
@@ -1109,7 +1110,7 @@ var provvisLayout = function () {
             var gANodes = groupNodes(tsANodes);
 
             /* TODO: Refine and clean up. */
-            var bclgNodes = layoutNodes(gANodes, graph);
+            bclgNodes = layoutNodes(gANodes, graph);
 
             /* Remove dummy nodes. */
             //removeDummyNodes(graph);
@@ -1218,6 +1219,8 @@ var provvisLayout = function () {
         } else {
             console.log("Error: Graph is not acyclic!");
         }
+
+        return bclgNodes;
     };
 
     /**
@@ -1225,7 +1228,7 @@ var provvisLayout = function () {
      */
     return{
         runLayout: function (graph) {
-            runLayoutPrivate(graph);
+            return runLayoutPrivate(graph);
         }
     };
 }();

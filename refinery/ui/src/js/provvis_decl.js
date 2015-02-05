@@ -298,24 +298,24 @@ var provvisDecl = function () {
     Layer.prototype = Object.create(Macro.prototype);
     Layer.prototype.constructor = Layer;
 
+
+
     /**
      * Constructor function for the motif data structure.
      *
-     * @param id
-     * @param parent
-     * @param hidden
      * @constructor
      */
-    var Motif = function (id, parent, hidden) {
-        BaseNode.call(this, id, "motif", parent, hidden);
+    var Motif = function () {
 
         this.inputs = d3.map();
         this.outputs = d3.map();
-        this.links = d3.map();
-    };
 
-    Motif.prototype = Object.create(BaseNode.prototype);
-    Motif.prototype.constructor = Motif;
+        this.nodes = d3.map();
+        this.links = d3.map();
+
+        Motif.numInstances = (Motif.numInstances || 0) + 1;
+        this.autoId = Motif.numInstances;
+    };
 
     /**
      * Constructor function for the link data structure.
