@@ -11,11 +11,11 @@ var provvisMotifs = function () {
      * @param bclgNodes Barcentric layered and grouped nodes.
      */
     var runMotifsPrivate = function (graph, bclgNodes) {
-        console.log("#motif discovery:");
+        /*console.log("#motif discovery:");
         console.log(graph);
 
         console.log(bclgNodes);
-
+*/
 
 
         /**
@@ -30,49 +30,25 @@ var provvisMotifs = function () {
              */
             var getSuccs = function (n) {
 
-                /* If n has at least one successor s, and all successors S have no other inputs, begin new motif. */
+                /*console.log(n);
+                console.log(n.autoId);*/
 
-                /* The motif is extended by all successors S of n. */
+                /* When node has only one input and output and successor node has no other inputs, start motif. */
+                if (n.succs.size() === 1 && n.succs.values()[0].preds.size() === 1) {
+                    //console.log("#motif: "  + n.autoId);
+                }
 
-                console.log(n);
-                console.log(n.autoId);
-
-                /* Rule A: n has a single successor s. s has no other predecessors. */
-                if (n.succs.size() === 1) {
-
-                    /* End of dummypath. */
-                    if (n.succs.values()[0] instanceof provvisDecl.Node) {
-                        nset.push(n.succs.values()[0].parent.parent);
-                        nqueue.push(n.succs.values()[0].parent.parent);
-                    } else {
-                        nset.push(n.succs.values()[0]);
-                        nqueue.push(n.succs.values()[0]);
+                /* Add successor nodes to queue. */
+                n.succs.values().forEach( function (s) {
+                    if (s instanceof provvisDecl.Node && nset.indexOf(s.parent.parent) === -1) {
+                        nset.push(s.parent.parent);
+                        nqueue.push(s.parent.parent);
                     }
-
-
-                }
-                /* Rule B: n has multiple successors S where every successor s is of the same workflow w.
-                 * Rule E: n has multiple successors S conforming to heterogeneous workflows W.
-                 */
-                else if (n.succs.size() > 1) {
-                    n.succs.values().forEach( function (s) {
-                        if (nset.indexOf(s) === -1) {
-                            nset.push(s);
-                            nqueue.push(s);
-                        }
-                    });
-                }
-
-                /* Rule C: n has a single successor s, but all other predecessors of s
-                 * conform to the same workflow w as n and they have a single successors s
-                 * with the same workflow as s.
-                 * Rule F:
-                 * Rule H:
-                 */
-
-                /* Rule D:
-                 * Rule G:
-                 */
+                    else if (nset.indexOf(s) === -1) {
+                        nset.push(s);
+                        nqueue.push(s);
+                    }
+                });
             };
 
             var nqueue = [],
@@ -83,7 +59,7 @@ var provvisMotifs = function () {
                     getSuccs(nqueue.shift());
                 }
 
-            console.log(nset);
+            //console.log(nset);
         };
 
         bfs(graph.dataset);
