@@ -1565,11 +1565,23 @@ var provvisRender = function () {
                 /* Clear subanalysis cell. */
                 vis.graph.l.grid[d.parent.col + d.col][d.parent.row + d.row] = "undefined";
 
+                console.log("EXPAND SAN " + d.autoId);
+                console.log(d.parent.l.grid[0]);
+                console.log(d.l.grid);
+
+                /* Clear workflow nodes from the graph grid within the analysis bounding box. */
+                d.parent.children.values().forEach( function (san) {
+                    san.children.values().forEach( function (n) {
+                       setGridCellVal(n.parent.parent.col + n.parent.col + n.col,n.parent.parent.row+ n.parent.row + n.row,"undefined");
+                    });
+                });
+
+
                 /* Shift vertically within the analysis bounding box. */
                 for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
+
                     console.log(i);
                     if (i < d.row + d.l.width - 1) {
-
                         d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
                     } else if (i > d.row + d.l.width - 1) {
                         var curSA = d.parent.l.grid[0][i];
@@ -1579,6 +1591,10 @@ var provvisRender = function () {
                     }
                 }
                 d.parent.l.width += d.l.width - 1;
+
+                console.log("EXPANDED SAN " + d.autoId);
+                console.log(d.parent.l.grid[0]);
+                console.log(d.l.grid);
 
                 /* Only shift horizontally, when no subanalysis is expanded yet. */
                 var isAnyChildNodeVisible = d.parent.children.values().some( function (san) {
@@ -1805,36 +1821,17 @@ var provvisRender = function () {
                         }
                     });
                 }
+
+                console.log("COLLAPSE SAN " + d.autoId);
+                console.log(d.parent.parent.l.grid[0]);
+                console.log(d.parent.l.grid);
+
+
+                /* TODO: Update graph grid with shifted subanalysis and workflow nodes. */
+
+
             }
             vis.graph.l.depth = vis.graph.l.grid.length;
-
-
-            var curN = Object.create(null);
-
-            /* Update analysis cols and rows. */
-            /*for (i = 0; i < vis.graph.l.depth; i++) {
-                for (j = 0; j < vis.graph.l.width; j++) {
-                    if (vis.graph.l.grid[i][j] !== "undefined") {
-                        curN = vis.graph.l.grid[i][j];
-                        if (curN.nodeType === "analysis") {
-                            curN.col = i;
-                            curN.row = j;
-                        } else if (curN.nodeType === "subanalysis") {
-                            curN.col = i-curN.parent.col;
-                            curN.row = j-curN.parent.row;
-                        } else {
-                            curN.col = i-curN.parent.col-curN.parent.parent.col;
-                            curN.row = j-curN.parent.row-curN.parent.parent.row;
-                        }
-                        curN.x = curN.col * cell.width;
-                        curN.y = curN.row * cell.height;
-
-                        updateNode(d3.select("#gNodeId-" + curN.autoId), curN, curN.x, curN.y);
-                        updateLink(curN, curN.x, curN.y);
-                    }
-                }
-            }*/
-            //updateGrid(vis.graph);
 
 
             /* TODO: Shrink grid by rows. */
