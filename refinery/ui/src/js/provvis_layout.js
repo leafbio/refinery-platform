@@ -209,7 +209,7 @@ var provvisLayout = function () {
                     /* Crossing. */
                 } else {
                     /* Type 0 and 1 conflict: If link is an non-inner segment, mark link to be removed. */
-                    if (tarA.nodeType !== "dummy" || srcA.nodeType !== "dummy") {
+                    if (tarA.uuid !== "dummy" || srcA.uuid !== "dummy") {
                         upp.l.type1 = true;
 
                         /* If link is an inner segment, remove all non-inner segments crossing it beforehand. */

@@ -57,6 +57,47 @@ var provvisRender = function () {
     };
 
     /**
+     * Breadth first search algorithm.
+     * @param an Analysis node.
+     */
+    var bfsSuccessorAnalyses = function (an) {
+
+        /**
+         * Helper function to get successors of the current node;
+         * @param n Node.
+         */
+        var getSuccs = function (n) {
+
+            /* Add successor nodes to queue. */
+            n.succs.values().forEach( function (s) {
+                if (s instanceof provvisDecl.Node && nset.indexOf(s.parent.parent) === -1) {
+                    nset.push(s.parent.parent);
+                    nqueue.push(s.parent.parent);
+                }
+                else if (nset.indexOf(s) === -1) {
+                    nset.push(s);
+                    nqueue.push(s);
+                }
+            });
+        };
+
+        /* Init nodeset and queue. */
+        var nqueue = [],
+            nset = [];
+        nset.push(an);
+        nqueue.push(an);
+
+        /* Iterate over queue. */
+        while(nqueue.length > 0) {
+            getSuccs(nqueue.shift());
+        }
+
+        /* Only return successors. */
+        nset.shift();
+        return nset;
+    };
+
+    /**
      * On doi change, update node doi labels.
      */
     var updateNodeDoi = function () {
@@ -394,6 +435,16 @@ var provvisRender = function () {
     };
 
     /**
+     * Assigns the grid cell at col and row with the given value.
+     * @param n BaseNode.
+     */
+    var setGridCellVal = function (col, row, n) {
+        if (col < vis.graph.l.depth && row < vis.graph.l.width && vis.graph.l.grid[col][row]) {
+            vis.graph.l.grid[col][row] = n;
+        }
+    };
+
+    /**
      * Clear cells.
      * @param an Analysis node.
      * @param pos Dragstart column and row.
@@ -405,18 +456,25 @@ var provvisRender = function () {
         if (an.hidden) {
             an.children.values().forEach( function (san) {
                 if (san.hidden) {
+
                     /* Clear workflow cells. */
                     san.children.values().forEach( function (n) {
-                        vis.graph.l.grid[pos.col + san.col + n.col][pos.row + san.row + n.row] = "undefined";
+                        setGridCellVal(pos.col + san.col + n.col, pos.row + san.row + n.row, "undefined");
                     });
+
                 } /* Clear subanalysis cells. */
                 else {
-                    vis.graph.l.grid[pos.col + san.col][pos.row + san.row] = "undefined";
+                    if (pos.col + san.col < vis.graph.l.depth && pos.row + san.row < vis.graph.l.width &&
+                        vis.graph.l.grid[pos.col + san.col][pos.row + san.row] &&
+                        vis.graph.l.grid[pos.col + san.col][pos.row + san.row].parent === an) {
+                        setGridCellVal(pos.col + san.col, pos.row + san.row, "undefined");
+                    }
                 }
             });
         } else {
+
             /* Clear analysis cell. */
-            vis.graph.l.grid[pos.col][pos.row] = "undefined";
+            setGridCellVal(pos.col, pos.row, "undefined");
         }
     };
 
@@ -433,16 +491,19 @@ var provvisRender = function () {
                 if (san.hidden) {
                     /* Set workflow cells. */
                     san.children.values().forEach( function (n) {
-                        vis.graph.l.grid[an.col+san.col+ n.col][an.row+san.row+ n.row] = n;
+                        //vis.graph.l.grid[an.col+san.col+ n.col][an.row+san.row+ n.row] = n;
+                        setGridCellVal(an.col+san.col+ n.col, an.row+san.row+ n.row, n);
                     });
                 } /* Set subanalysis cells. */
                 else {
-                    vis.graph.l.grid[an.col+san.col][an.row+san.row] = san;
+                    //vis.graph.l.grid[an.col+san.col][an.row+san.row] = san;
+                    setGridCellVal(an.col+san.col, an.row+san.row, san);
                 }
             });
         } else {
             /* Set analysis cell. */
-            vis.graph.l.grid[an.col][an.row] = an;
+            //vis.graph.l.grid[an.col][an.row] = an;
+            setGridCellVal(an.col, an.row, an);
         }
     };
 
@@ -1310,7 +1371,7 @@ var provvisRender = function () {
     var getBBoxCords = function (n, offset) {
         var minX, minY, maxX, maxY = 0;
 
-        if (n.children.empty()) {
+        if (n.children.empty() || !n.hidden) {
             minX = (-cell.width / 2 + offset);
             maxX = (cell.width / 2 - offset);
             minY = (-cell.width / 2 + offset);
@@ -1383,7 +1444,8 @@ var provvisRender = function () {
             pos = {col: 0, row: 0},
             i = 0,
             j = 0,
-            curAN = Object.create(null);
+            curAN = Object.create(null),
+            shiftedAnalysisNodeset = [];
 
         /* Expand. */
         if (keyStroke === "e" && (d.nodeType === "analysis" || d.nodeType === "subanalysis")) {
@@ -1494,26 +1556,26 @@ var provvisRender = function () {
                     d.row = d.row - d.l.width + 1;
                     d.x = d.col * cell.width;
                     d.y = d.row * cell.height;
-
-                    /* Update grid cells. */
                     dragAnalysisNode(d, d3.select("#gNodeId-" + d.autoId));
                 }
             }
             /* Shift horizontally. */
             else if (d.nodeType === "subanalysis") {
 
+                /* Clear subanalysis cell. */
+                vis.graph.l.grid[d.parent.col + d.col][d.parent.row + d.row] = "undefined";
+
                 /* Shift vertically within the analysis bounding box. */
                 for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
+                    console.log(i);
                     if (i < d.row + d.l.width - 1) {
+
                         d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
                     } else if (i > d.row + d.l.width - 1) {
                         var curSA = d.parent.l.grid[0][i];
                         curSA.row = i;
                         curSA.y = curSA.row * cell.height;
                         updateNode(d3.select("#gNodeId-" + curSA.autoId), curSA, curSA.x, curSA.y);
-
-                        /* TODO: Revise. */
-                        //updateLink(curSA, curSA.x, curSA.y);
                     }
                 }
                 d.parent.l.width += d.l.width - 1;
@@ -1525,32 +1587,32 @@ var provvisRender = function () {
                     });
                 });
 
-                /* TODO: Only shift if the expanded node would collide with any other node. */
-                /* Check for space available. */
-
+                /* TODO: Revise. */
 
                 /* Shift analyses horizontally. */
                 if (!isAnyChildNodeVisible) {
-
-
-
+                    shiftedAnalysisNodeset = [];
                     for (i = vis.graph.l.depth - 1; i > d.parent.col; i--) {
                         for (j = 0; j < vis.graph.l.width; j++) {
 
-                            /* Actual analyses to shift. */
+                            /* Check cell if not empty. */
                             if (vis.graph.l.grid[i][j] && vis.graph.l.grid[i][j] !== "undefined") {
-
                                 curAN = vis.graph.l.grid[i][j];
+                                /* In case the current cell is occupied by a child of an analysis. */
                                 while (!(curAN instanceof provvisDecl.Analysis)) {
                                     curAN = curAN.parent;
                                 }
 
-                                dragStartAnalysisPos = {col: curAN.col, row: curAN.row};
-                                curAN.col = curAN.col + d.l.depth-1;
-                                curAN.x = curAN.col * cell.width;
+                                /* Actual analyses to shift. Do not shift any analysis twice. */
+                                if (shiftedAnalysisNodeset.indexOf(curAN) === -1) {
+                                    dragStartAnalysisPos = {col: curAN.col, row: curAN.row};
+                                    curAN.col = curAN.col + d.l.depth - 1;
+                                    curAN.x = curAN.col * cell.width;
 
-                                /* Update grid cells.*/
-                                dragAnalysisNode(curAN, d3.select("#gNodeId-" + curAN.autoId));
+                                    /* Update grid cells. */
+                                    dragAnalysisNode(curAN, d3.select("#gNodeId-" + curAN.autoId));
+                                    shiftedAnalysisNodeset.push(curAN);
+                                }
                             }
                         }
                     }
@@ -1641,6 +1703,7 @@ var provvisRender = function () {
                 /* Update links. */
                 updateLink(d.parent, d.parent.x, d.parent.y);
 
+                dragStartAnalysisPos = {col: d.parent.col, row: d.parent.row};
                 dragAnalysisNode(d.parent, d3.select("#gNodeId-" + d.parent.autoId));
             } else {
 
@@ -1659,8 +1722,7 @@ var provvisRender = function () {
                 /* Update links. */
                 updateLink(d, d.x, d.y);
 
-                /* TODO: Check analysis expansion. */
-                /*setGridCell(d);*/
+                dragStartAnalysisPos = {col: d.col, row: d.row};
                 dragAnalysisNode(d, d3.select("gNodeId-" + d.autoId));
             }
 
@@ -1694,23 +1756,12 @@ var provvisRender = function () {
                 collapseDepth = d.l.depth;
 
                 /* Clear subanalysis cells. */
-                //vis.graph.l.grid[pos.col][pos.row] = curAN;
                 for (i = pos.row; i < pos.row+curAN.l.width && i < vis.graph.l.width; i++){
                     if (vis.graph.l.grid[pos.col][i] !== "undefined" && vis.graph.l.grid[pos.col][i].parent === curAN) {
                         vis.graph.l.grid[pos.col][i] = "undefined";
                     }
                 }
 
-
-
-
-                /* Check for empty columns and remove them. */
-                /*for (i = pos.col + collapseDepth-1; i > pos.col && i < vis.graph.l.depth; i--) {
-                    if (!colIsUsed(i)) {
-                        vis.graph.l.grid.splice(i,1);
-                        i++;
-                    }
-                }*/
             } else {
                 console.log("#collapse node");
                 console.log(d);
@@ -1730,32 +1781,19 @@ var provvisRender = function () {
                     }
                 });
 
-                /* Only shrink columns when the last remaining subanalysis is collapsed. */
-                /*if (curAN.children.values().filter(function (san) {return san.hidden;}).length === 1) {
-
-                    *//* Check for empty columns and remove them. *//*
-                    for (i = pos.col + collapseDepth-1; i > pos.col && i < vis.graph.l.depth; i--) {
-                        if (!colIsUsed(i)) {
-                            vis.graph.l.grid.splice(i,1);
-                            i++;
-
-                        }
-                    }
-                }*/
-
                 /* Tighten subanalysis nodes vertically. */
-                /*if (!d.hidden) {
+                if (!d.hidden) {
                     var nextRow = 0;
                     curAN.children.values().sort(function (a, b) {
                         return a.row - b.row;
                     }).forEach(function (san) {
 
-                        *//* Set current row. *//*
+                        /* Set current row. */
                         san.row = nextRow;
                         san.y = san.row * cell.height;
                         updateNode(d3.select("#gNodeId-" + san.autoId), san, san.x, san.y);
 
-                        *//* Set next row. *//*
+                        /* Set next row. */
                         if (san === d.parent) {
                             san.parent.l.grid[0].splice(san.row + 1, san.l.width - 1);
                             curAN.l.width -= san.l.width - 1;
@@ -1766,9 +1804,9 @@ var provvisRender = function () {
                             nextRow += san.l.width;
                         }
                     });
-                }*/
+                }
             }
-            //vis.graph.l.depth = vis.graph.l.grid.length;
+            vis.graph.l.depth = vis.graph.l.grid.length;
 
 
             var curN = Object.create(null);
@@ -1924,6 +1962,51 @@ var provvisRender = function () {
                 updateLink(d.parent.parent, d.parent.parent.x, d.parent.parent.y);
 
                 setGridCell(d.parent.parent);
+
+                /* Splice columns. */
+                /* Check for empty columns and remove them. */
+                var colLastSpliced = vis.graph.l.depth-1;
+
+                for (i = vis.graph.l.depth-1; i >= 0; i--) {
+                    if (!colIsUsed(i)) {
+                        vis.graph.l.grid.splice(i, 1);
+                        console.log("SPLICED " + i);
+                        vis.graph.l.depth--;
+                        colLastSpliced = i;
+                        //i++;
+                    }
+                }
+
+                vis.graph.l.depth = vis.graph.l.grid.length;
+
+                /* Update grid cells. */
+                shiftedAnalysisNodeset = [];
+                for (i = colLastSpliced; i < vis.graph.l.depth; i++) {
+                    for (j = 0; j < vis.graph.l.width; j++) {
+
+                        /* Check cell if not empty. */
+                        if (vis.graph.l.grid[i][j] && vis.graph.l.grid[i][j] !== "undefined") {
+                            curAN = vis.graph.l.grid[i][j];
+
+                            /* In case the current cell is occupied by a child of an analysis. */
+                            while (!(curAN instanceof provvisDecl.Analysis)) {
+                                curAN = curAN.parent;
+                            }
+
+                            /* Actual analyses to shift. Do not shift any analysis twice. */
+                            if (shiftedAnalysisNodeset.indexOf(curAN) === -1) {
+                                dragStartAnalysisPos = {col: curAN.col, row: curAN.row};
+                                curAN.col = i;
+                                curAN.x = curAN.col * cell.width;
+
+                                /* Update grid cells. */
+                                dragAnalysisNode(curAN, d3.select("#gNodeId-" + curAN.autoId));
+                                shiftedAnalysisNodeset.push(curAN);
+                            }
+                        }
+                    }
+                }
+                updateGrid(vis.graph);
             }
         }
         clearNodeSelection();
@@ -2119,6 +2202,7 @@ var provvisRender = function () {
                 break;
 
             case "analysis":
+
                 data = vis.graph.analysisData.get(selNode.uuid);
                 if (typeof data !== "undefined") {
                     title = "<b>" + "Analysis: " + "<b>" + "<a href=/workflows/" + data.uuid + ">" +
