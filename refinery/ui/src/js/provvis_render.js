@@ -459,7 +459,12 @@ var provvisRender = function () {
 
                     /* Clear workflow cells. */
                     san.children.values().forEach( function (n) {
-                        setGridCellVal(pos.col + san.col + n.col, pos.row + san.row + n.row, "undefined");
+                        if (pos.col + san.col + n.col < vis.graph.l.depth && pos.row + san.row + n.row < vis.graph.l.width &&
+                            vis.graph.l.grid[pos.col + san.col + n.col][pos.row + san.row + n.row] &&
+                            vis.graph.l.grid[pos.col + san.col + n.col][pos.row + san.row + n.row] instanceof provvisDecl.Node &&
+                            vis.graph.l.grid[pos.col + san.col + n.col][pos.row + san.row + n.row].parent.parent === an) {
+                            setGridCellVal(pos.col + san.col + n.col, pos.row + san.row + n.row, "undefined");
+                        }
                     });
 
                 } /* Clear subanalysis cells. */
@@ -474,7 +479,11 @@ var provvisRender = function () {
         } else {
 
             /* Clear analysis cell. */
-            setGridCellVal(pos.col, pos.row, "undefined");
+            if (pos.col < vis.graph.l.depth && pos.row < vis.graph.l.width &&
+                vis.graph.l.grid[pos.col][pos.row] &&
+                vis.graph.l.grid[pos.col][pos.row] === an) {
+                setGridCellVal(pos.col, pos.row, "undefined");
+            }
         }
     };
 
@@ -508,13 +517,10 @@ var provvisRender = function () {
     };
 
     /**
-     *
+     * Add columns.
      * @param value Number of columns to add.
      */
     var addGridColumns = function (value) {
-        console.log("#addGridColumns: " + value);
-
-        /* Add columns. */
         for (var i = 0; i < value; i++) {
             vis.graph.l.grid.push([]);
             for (var j = 0; j < vis.graph.l.width; j++) {
@@ -527,12 +533,10 @@ var provvisRender = function () {
     };
 
     /**
-     *
+     * Add rows.
      * @param value Number of rows to add.
      */
     var addGridRows = function (value) {
-        console.log("#addGridRows: " + value);
-        /* Add rows. */
         for (var i = 0; i < value; i++) {
             for (var j = 0; j < vis.graph.l.depth; j++) {
                 vis.graph.l.grid[j][vis.graph.l.width + i] = "undefined";
@@ -544,7 +548,7 @@ var provvisRender = function () {
     };
 
     /**
-     *
+     * Drag analysis node.
      * @param n Analysis node.
      * @param dom Analysis node as dom object.
      */
@@ -1450,8 +1454,7 @@ var provvisRender = function () {
         /* Expand. */
         if (keyStroke === "e" && (d.nodeType === "analysis" || d.nodeType === "subanalysis")) {
 
-            console.log("#expand " + d.autoId);
-            console.log(d.doi.doiWeightedSum);
+            console.log("#EXPAND " + d.autoId);
 
             /* TODO: Prototype implementation for dynamic layout. */
             /* Dynamically adjust layout. */
@@ -1470,6 +1473,7 @@ var provvisRender = function () {
 
             /* Shift vertically. */
             if (d.nodeType === "analysis") {
+                console.log("#EXPAND analysis " + d.autoId);
 
                 /* Check if grid cells for expanded subanalyses are occupied. */
 
@@ -1561,26 +1565,14 @@ var provvisRender = function () {
             }
             /* Shift horizontally. */
             else if (d.nodeType === "subanalysis") {
+                console.log("#EXPAND subanalysis " + d.autoId);
 
                 /* Clear subanalysis cell. */
                 vis.graph.l.grid[d.parent.col + d.col][d.parent.row + d.row] = "undefined";
 
-                console.log("EXPAND SAN " + d.autoId);
-                console.log(d.parent.l.grid[0]);
-                console.log(d.l.grid);
-
-                /* Clear workflow nodes from the graph grid within the analysis bounding box. */
-                d.parent.children.values().forEach( function (san) {
-                    san.children.values().forEach( function (n) {
-                       setGridCellVal(n.parent.parent.col + n.parent.col + n.col,n.parent.parent.row+ n.parent.row + n.row,"undefined");
-                    });
-                });
-
-
                 /* Shift vertically within the analysis bounding box. */
                 for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
 
-                    console.log(i);
                     if (i < d.row + d.l.width - 1) {
                         d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
                     } else if (i > d.row + d.l.width - 1) {
@@ -1591,10 +1583,6 @@ var provvisRender = function () {
                     }
                 }
                 d.parent.l.width += d.l.width - 1;
-
-                console.log("EXPANDED SAN " + d.autoId);
-                console.log(d.parent.l.grid[0]);
-                console.log(d.l.grid);
 
                 /* Only shift horizontally, when no subanalysis is expanded yet. */
                 var isAnyChildNodeVisible = d.parent.children.values().some( function (san) {
@@ -1633,6 +1621,13 @@ var provvisRender = function () {
                         }
                     }
                 }
+
+                /* Clear workflow nodes from the graph grid within the analysis bounding box. */
+                d.parent.children.values().forEach( function (san) {
+                    san.children.values().forEach( function (n) {
+                        setGridCellVal(n.parent.parent.col + n.parent.col + n.col,n.parent.parent.row+ n.parent.row + n.row,"undefined");
+                    });
+                });
 
                 /* Shift analyses downwards within the same column of the analysis in context. */
                 for (i = vis.graph.l.width - 1; i > (d.parent.row + d.parent.l.width- d.l.width); i--) {
@@ -1747,7 +1742,7 @@ var provvisRender = function () {
 
             /* TODO: Prototype implementation for dynamic layout. */
 
-            console.log("#collapse " + d.autoId);
+            console.log("#COLLAPSE " + d.autoId);
 
            var collapseDepth = 0;
 
@@ -1763,7 +1758,7 @@ var provvisRender = function () {
             /* Collapse subanalyses. */
             if (d.nodeType === "subanalysis") {
 
-                console.log("#collapse subanalysis");
+                console.log("#COLLAPSE subanalysis");
                 console.log(d);
 
                 curAN = d.parent;
@@ -1779,7 +1774,7 @@ var provvisRender = function () {
                 }
 
             } else {
-                console.log("#collapse node");
+                console.log("#COLLAPSE node");
                 console.log(d);
 
 
@@ -1822,14 +1817,7 @@ var provvisRender = function () {
                     });
                 }
 
-                console.log("COLLAPSE SAN " + d.autoId);
-                console.log(d.parent.parent.l.grid[0]);
-                console.log(d.parent.l.grid);
-
-
                 /* TODO: Update graph grid with shifted subanalysis and workflow nodes. */
-
-
             }
             vis.graph.l.depth = vis.graph.l.grid.length;
 
@@ -1967,7 +1955,7 @@ var provvisRender = function () {
                 for (i = vis.graph.l.depth-1; i >= 0; i--) {
                     if (!colIsUsed(i)) {
                         vis.graph.l.grid.splice(i, 1);
-                        console.log("SPLICED " + i);
+                        /*console.log("SPLICED " + i);*/
                         vis.graph.l.depth--;
                         colLastSpliced = i;
                         //i++;
