@@ -467,7 +467,7 @@ var provvisRender = function () {
     /**
      * Collision detection while dragging.
      * @param an Analysis node.
-     * @returns {boolean} Whether a collision occured.
+     * @returns {boolean} Whether a collision occurred.
      */
     var checkCollision = function (an) {
         var minCol = !an.hidden ? an.col : d3.min(an.children.values(), function (san) {
@@ -538,6 +538,51 @@ var provvisRender = function () {
             }
         }
         return false;
+    };
+
+    /**
+     * Indirect collision occur when checking empty cells within a workflow subgraph.
+     * @param col Grid column.
+     * @param row Grid row.
+     * @returns {boolean} Whether a collision occurred.
+     */
+    var checkIndirectCollision = function (col, row) {
+        var rowMask = [];
+
+        /* Initialize row check mask. */
+        for (var i = 0; i <= vis.graph.l.width; i++) {
+            rowMask[i] = false;
+        }
+
+        /* Iterate over column and find analyses. */
+        vis.graph.l.grid[col].forEach(function (d) {
+            if (d !== "undefined") {
+
+                /* Get analysis node. */
+                var curCell = d;
+                while (!(curCell instanceof provvisDecl.Analysis)) {
+                    curCell = curCell.parent;
+                }
+
+                /* Get min and max row of potentially expanded analysis. */
+                var curMinRow = !curCell.hidden ? curCell.row : d3.min(curCell.children.values(), function (san) {
+                        return !san.hidden ? curCell.row + san.row : d3.min(san.children.values(), function (cn) {
+                            return curCell.row + san.row + cn.row;
+                        });
+                    }),
+                    curMaxRow = !curCell.hidden ? curCell.row : d3.max(curCell.children.values(), function (san) {
+                        return !san.hidden ? curCell.row + san.row : d3.max(san.children.values(), function (cn) {
+                            return curCell.row + san.row + cn.row;
+                        });
+                    });
+
+                /* Mask array to check later. */
+                for (var i = curMinRow; i <= curMaxRow; i++) {
+                    rowMask[i] = true;
+                }
+            }
+        });
+        return rowMask[row];
     };
 
     /**
@@ -1577,22 +1622,21 @@ var provvisRender = function () {
      */
     var checkFreeSubanalysisExpansionSpace = function (d) {
         var minCol = d3.min(d.parent.children.values(), function (san) {
-                return d3.min(san.children.values(), function (cn) {
+                return san !== d ? d.parent.col + san.col : d3.min(san.children.values(), function (cn) {
                     return d.parent.col + san.col + cn.col;
                 });
             }),
             maxCol = d3.max(d.parent.children.values(), function (san) {
-                return d3.max(san.children.values(), function (cn) {
+                return san !== d ? d.parent.col + san.col : d3.max(san.children.values(), function (cn) {
                     return d.parent.col + san.col + cn.col;
                 });
             }),
             minRow = d3.min(d.parent.children.values(), function (san) {
-                return d3.min(san.children.values(), function (cn) {
+                return san !== d ? d.parent.row + san.row : d3.min(san.children.values(), function (cn) {
                     return d.parent.row + san.row + cn.row;
                 });
-            }),
-            maxRow = d3.max(d.parent.children.values(), function (san) {
-                return d3.max(san.children.values(), function (cn) {
+            }), maxRow = d3.max(d.parent.children.values(), function (san) {
+                return san !== d ? d.parent.row + san.row : d3.max(san.children.values(), function (cn) {
                     return d.parent.row + san.row + cn.row;
                 });
             });
@@ -1619,6 +1663,7 @@ var provvisRender = function () {
             return true;
         }
 
+        /* Check free space. */
         for (var i = minCol + 1; i >= 0 && i <= maxCol && i < vis.graph.l.depth; i++) {
             for (var j = minRow; j >= 0 && j <= maxRow && j < vis.graph.l.width; j++) {
                 if (vis.graph.l.grid[i][j] !== "undefined") {
@@ -1833,8 +1878,8 @@ var provvisRender = function () {
                 }
             });
 
-            /* Set analysis without rooted predecessor. */
-            /* Recompute barycentric coords of preds and reposition. */
+            /* Set analysis without rooted predecessor.
+             * Recompute barycentric coords of preds and reposition. */
             shiftedAnalysisNodeset.forEach(function (curAN) {
 
                 if (!curAN.preds.empty()) {
@@ -1860,10 +1905,14 @@ var provvisRender = function () {
                     /* Vertical compaction. */
                     dragStartAnalysisPos = {col: curCol, row: curAN.row};
                     i = bcRow;
+
                     var setNoRootRow = false;
                     while (!setNoRootRow && i < vis.graph.l.width + 1) {
                         curAN.row = i;
-                        if (!checkCollision(curAN)) {
+
+                        /* When cell is not occupied directly through a node or indirectly
+                         * through an expanded workflow with empty cells. */
+                        if (!checkCollision(curAN) && !checkIndirectCollision(curAN.col, i)) {
                             dragStartAnalysisPos = {col: curCol, row: curAN.row};
                             dragAnalysisNode(curAN, d3.select("#gNodeId-" + curAN.autoId));
                             setNoRootRow = true;
@@ -2192,8 +2241,6 @@ var provvisRender = function () {
         } else if (keyStroke === "c" && d.nodeType !== "analysis") {
             /* Collapse. */
 
-            var tmpAN = Object.create(null);
-
             /* Collapse subanalyses. */
             if (d.nodeType === "subanalysis") {
                 //console.log("#COLLAPSE subanalysis " + d.autoId);
@@ -2297,22 +2344,6 @@ var provvisRender = function () {
                     .attr("height", function () {
                         return cell.height - 2;
                     });
-
-                /* Update links. */
-                updateLink(curAN, curAN.x, curAN.y);
-
-                setGridCell(curAN);
-
-                /* Vertical compaction. */
-                postprocessGridColumn(curAN.col);
-                for (i = curAN.col; i < vis.graph.l.depth; i++) {
-                    postprocessGridColumn(i);
-                }
-
-                /* Splice grid. */
-                spliceGridColumns(curAN);
-                spliceGridRows(curAN);
-
             } else {
                 curAN = d.parent.parent;
 
@@ -2351,26 +2382,22 @@ var provvisRender = function () {
                         .attr("rx", cell.width / 3)
                         .attr("ry", cell.height / 3);
                 }
-
-                /* Update links. */
-                updateLink(curAN, curAN.x, curAN.y);
-
-                setGridCell(curAN);
-
-                /* Splice grid. */
-                if (!curAN.children.values().some(function (san) {
-                    return san.hidden;
-                })) {
-                    /* Vertical compaction. */
-                    postprocessGridColumn(curAN.col);
-                    for (i = curAN.col; i < vis.graph.l.depth; i++) {
-                        postprocessGridColumn(i);
-                    }
-
-                    spliceGridColumns(curAN);
-                    spliceGridRows(curAN);
-                }
             }
+            /* Update links. */
+            updateLink(curAN, curAN.x, curAN.y);
+
+            /* Set grid cell. */
+            setGridCell(curAN);
+
+            /* Vertical compaction. */
+            postprocessGridColumn(curAN.col);
+            for (i = curAN.col; i < vis.graph.l.depth; i++) {
+                postprocessGridColumn(i);
+            }
+
+            /* Splice grid. */
+            spliceGridColumns(curAN);
+            spliceGridRows(curAN);
         }
         clearNodeSelection();
 
@@ -3377,8 +3404,8 @@ var provvisRender = function () {
 
         /* TODO: Currently disabled - rewrite for develop branch. */
         /* Handle tooltips. */
-        //handleTooltips();
-        handleDebugTooltips();
+        handleTooltips();
+        //handleDebugTooltips();
 
         /* Collapse on bounding box click.*/
         saBBox.on("click", function (d) {
