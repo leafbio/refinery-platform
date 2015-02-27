@@ -1700,8 +1700,6 @@ var provvisRender = function () {
             }
         }
 
-        vis.graph.l.depth = vis.graph.l.grid.length;
-
         /* Update grid cells. */
         if (colLastSpliced < vis.graph.l.depth) {
             for (i = colLastSpliced; i < vis.graph.l.depth; i++) {
@@ -2352,9 +2350,11 @@ var provvisRender = function () {
                 setGridCell(curAN);
 
                 /* Vertical compaction. */
-                postprocessGridColumn(curAN.col);
-                for (i = curAN.col; i < vis.graph.l.depth; i++) {
-                    postprocessGridColumn(i);
+                if (curAN.uuid !== "dataset") {
+                    postprocessGridColumn(curAN.col);
+                    for (i = curAN.col; i < vis.graph.l.depth; i++) {
+                        postprocessGridColumn(i);
+                    }
                 }
 
                 /* Splice grid. */
@@ -2405,9 +2405,11 @@ var provvisRender = function () {
                 setGridCell(curAN);
 
                 /* Vertical compaction. */
-                postprocessGridColumn(curAN.col);
-                for (i = curAN.col; i < vis.graph.l.depth; i++) {
-                    postprocessGridColumn(i);
+                if (curAN.uuid !== "dataset") {
+                    postprocessGridColumn(curAN.col);
+                    for (i = curAN.col; i < vis.graph.l.depth; i++) {
+                        postprocessGridColumn(i);
+                    }
                 }
 
                 /* If the selected subanalysis is the last remaining to collapse. */
