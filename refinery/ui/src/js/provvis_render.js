@@ -748,6 +748,52 @@ var provvisRender = function () {
          * the graph is shifted by the absolute amount of the negative cell count.
          */
         if (n.col < 0 || n.row < 0) {
+
+            /* Remember translations. */
+            var p = n.x < 0 ? n.x : 0,
+                q = n.y < 0 ? n.y : 0;
+
+            /* Get current and absolute canvas transition. */
+            var t = d3.transform(vis.canvas.attr("transform")),
+                u = t.translate[0],
+                v = t.translate[1],
+                w = t.scale[0];
+
+            /* Add relative translation to canvas. */
+            var newPos = [u+(p*w),v+(q*w)],
+                newScale = w;
+
+            /* Transformations. */
+            vis.canvas
+                .attr("transform", "translate(" + newPos + ")scale(" + newScale + ")");
+
+            vis.zoom.translate(newPos);
+            vis.zoom.scale(newScale);
+
+            /* Background rectangle fix. */
+            vis.rect.attr("transform", "translate(" + (-newPos[0] / newScale) + "," +
+            (-newPos[1] / newScale) + ")" + " scale(" + (1 / newScale) + ")");
+
+            /* Quick fix to exclude scale from text labels. */
+            vis.canvas.selectAll(".aBBoxLabel")
+                .attr("transform", "translate(" + 4 + "," + (vis.radius) + ") scale(" + (1 / newScale) + ")");
+
+            vis.canvas.selectAll(".saBBoxLabel")
+                .attr("transform", "translate(" + 10 + "," + (vis.radius) + ") scale(" + (1 / newScale) + ")");
+
+            vis.canvas.selectAll(".nodeDoiLabel")
+                .attr("transform", "translate(" + (-cell.width / 2 + 2) + "," + vis.radius * 1.5 + ") scale(" + (1 / newScale) + ")");
+
+            vis.canvas.selectAll(".nodeAttrLabel")
+                .attr("transform", "translate(" + (-cell.width / 2 + 5) + "," + vis.radius * 1.5 + ") scale(" + (1 / newScale) + ")");
+
+            vis.canvas.selectAll(".subanalysisLabel")
+                .attr("transform", "translate(" + (-cell.width / 2 + 5) + "," + vis.radius * 1.5 + ") scale(" + (1 / newScale) + ")");
+
+            vis.canvas.selectAll(".analysisLabel")
+                .attr("transform", "translate(" + (-cell.width / 2 + 4) + "," + vis.radius * 1.5 + ") scale(" + (1 / newScale) + ")");
+
+            /* Compute cols and rows to shift. */
             shiftCols = n.col < 0 ? Math.abs(n.col) : 0;
             shiftRows = n.row < 0 ? Math.abs(n.row) : 0;
 
@@ -3428,8 +3474,8 @@ var provvisRender = function () {
 
         /* TODO: Currently disabled - rewrite for develop branch. */
         /* Handle tooltips. */
-        handleTooltips();
-        //handleDebugTooltips();
+        //handleTooltips();
+        handleDebugTooltips();
 
         /* Collapse on bounding box click.*/
         saBBox.on("click", function (d) {
