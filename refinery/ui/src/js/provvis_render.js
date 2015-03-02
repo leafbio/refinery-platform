@@ -2762,23 +2762,25 @@ var provvisRender = function () {
         /* Node tooltips. */
         node.on("mouseover", function (d) {
             var self = d3.select(this);
-            showTooltip(
-                    createHTMLKeyValuePair("Name", d.name) + "<br>" +
-                    createHTMLKeyValuePair("Author", d.attributes.get("Author")) + "<br>" +
-                    createHTMLKeyValuePair("File Type", d.attributes.get("FileType")) + "<br>" +
-                    createHTMLKeyValuePair("Year", d.attributes.get("Year")) + "<br>" +
-                    createHTMLKeyValuePair("Month", d.attributes.get("Month")) + "<br>" +
-                    createHTMLKeyValuePair("Type", d.fileType), event);
+            var ttStr = createHTMLKeyValuePair("Name", d.name) + "<br>" +
+                createHTMLKeyValuePair("Type", d.fileType) + "<br>" +
+                createHTMLKeyValuePair("File Url", d.fileUrl) + "<br>" +
+                createHTMLKeyValuePair("UUID", d.uuid) + "<br>";
+            d.attributes.forEach( function (key, value) {
+                ttStr += createHTMLKeyValuePair(key, value) + "<br>";
+            });
+            showTooltip(ttStr, event);
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
-            showTooltip(
-                    createHTMLKeyValuePair("Name", d.name) + "<br>" +
-                    createHTMLKeyValuePair("Author", d.attributes.get("Author")) + "<br>" +
-                    createHTMLKeyValuePair("File Type", d.attributes.get("FileType")) + "<br>" +
-                    createHTMLKeyValuePair("Year", d.attributes.get("Year")) + "<br>" +
-                    createHTMLKeyValuePair("Month", d.attributes.get("Month")) + "<br>" +
-                    createHTMLKeyValuePair("Type", d.fileType), event);
+            var ttStr = createHTMLKeyValuePair("Name", d.name) + "<br>" +
+                createHTMLKeyValuePair("Type", d.fileType) + "<br>" +
+                createHTMLKeyValuePair("File Url", d.fileUrl) + "<br>" +
+                createHTMLKeyValuePair("UUID", d.uuid) + "<br>";
+            d.attributes.forEach( function (key, value) {
+                ttStr += createHTMLKeyValuePair(key, value) + "<br>";
+            });
+            showTooltip(ttStr, event);
         }).on("mouseout", function (d) {
             var self = d3.select(this);
             hideTooltip();
