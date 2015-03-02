@@ -2761,6 +2761,7 @@ var provvisRender = function () {
 
         /* Node tooltips. */
         node.on("mouseover", function (d) {
+            var self = d3.select(this);
             showTooltip(
                     createHTMLKeyValuePair("Name", d.name) + "<br>" +
                     createHTMLKeyValuePair("Author", d.attributes.get("Author")) + "<br>" +
@@ -2768,8 +2769,8 @@ var provvisRender = function () {
                     createHTMLKeyValuePair("Year", d.attributes.get("Year")) + "<br>" +
                     createHTMLKeyValuePair("Month", d.attributes.get("Month")) + "<br>" +
                     createHTMLKeyValuePair("Type", d.fileType), event);
-
-            d3.select(this).classed("mouseoverNode", true);
+            self.classed("mouseoverNode", true);
+            self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
             showTooltip(
                     createHTMLKeyValuePair("Name", d.name) + "<br>" +
@@ -2778,69 +2779,53 @@ var provvisRender = function () {
                     createHTMLKeyValuePair("Year", d.attributes.get("Year")) + "<br>" +
                     createHTMLKeyValuePair("Month", d.attributes.get("Month")) + "<br>" +
                     createHTMLKeyValuePair("Type", d.fileType), event);
-
-        }).on("mouseout", function () {
+        }).on("mouseout", function (d) {
+            var self = d3.select(this);
             hideTooltip();
-            d3.select(this).classed("mouseoverNode", false);
+            self.classed("mouseoverNode", false);
+            self.select(".labels").attr("clip-path", "url(#bbClipId-" + d.autoId + ")");
         });
 
         /* Subanalysis tooltips. */
         saNode.on("mouseover", function (d) {
             var self = d3.select(this);
-            showTooltip(createHTMLKeyValuePair("Subanalysis", d.subanalysis) + "<br>" +
+            /*showTooltip(
+                createHTMLKeyValuePair("Subanalysis", d.subanalysis) + "<br>" +
                 createHTMLKeyValuePair("Workflow", getWfNameByNode(d)) + "<br>" +
-                "<b>" + "Workflow: " + "<b>" + "<a href=/workflows/" + d.wfUuid + ">Workflow</a>", event);
-
+                "<b>" + "Workflow: " + "<b>" + "<a href=/workflows/" + d.wfUuid + ">Workflow</a>", event);*/
             self.classed("mouseoverNode", true);
-            self.select(".nodeAttrLabel").text(function (d) {
-                var wfName = "dataset";
-                if (typeof vis.graph.workflowData.get(vis.graph.saNodes[d.id].parent.wfUuid) !== "undefined") {
-                    wfName = vis.graph.workflowData.get(vis.graph.saNodes[d.id].parent.wfUuid).name;
-                }
-                return wfName;
-            });
+            self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
-            showTooltip(createHTMLKeyValuePair("Subanalysis", d.subanalysis) + "<br>" +
+            /*showTooltip(
+                createHTMLKeyValuePair("Subanalysis", d.subanalysis) + "<br>" +
                 createHTMLKeyValuePair("Workflow", getWfNameByNode(d)) + "<br>" +
-                "<b>" + "Workflow: " + "<b>" + "<a href=/workflows/" + d.wfUuid + ">Workflow</a>", event);
-        }).on("mouseout", function () {
+                "<b>" + "Workflow: " + "<b>" + "<a href=/workflows/" + d.wfUuid + ">Workflow</a>", event);*/
+        }).on("mouseout", function (d) {
             var self = d3.select(this);
-            hideTooltip();
-
+            /*hideTooltip();*/
             self.classed("mouseoverNode", false);
-            self.select(".nodeAttrLabel").text(function (d) {
-                var wfName = "dataset";
-                if (typeof vis.graph.workflowData.get(vis.graph.saNodes[d.id].parent.wfUuid) !== "undefined") {
-                    wfName = vis.graph.workflowData.get(vis.graph.saNodes[d.id].parent.wfUuid).name;
-                }
-                return wfName.substr(0, 20) + "..";
-            });
+            self.select(".labels").attr("clip-path", "url(#bbClipId-" + d.autoId + ")");
         });
 
         /* Analysis tolltips. */
         aNode.on("mouseover", function (d) {
             var self = d3.select(this);
-            showTooltip(createHTMLKeyValuePair("Analysis", d.uuid) + "<br>" +
+           /* showTooltip(
+                createHTMLKeyValuePair("Analysis", d.uuid) + "<br>" +
                 createHTMLKeyValuePair("Workflow", getWfNameByNode(d)) + "<br>" +
-                createHTMLKeyValuePair("Created", parseISOTimeFormat(d.start)) + "<br>", event);
-
+                createHTMLKeyValuePair("Created", parseISOTimeFormat(d.start)) + "<br>", event);*/
             self.classed("mouseoverNode", true);
-            self.select(".nodeAttrLabel").text(function (d) {
-                return parseISOTimeFormat(d.start).toString();
-            });
+            self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
-            showTooltip(createHTMLKeyValuePair("Analysis", d.uuid) + "<br>" +
+            /*showTooltip(
+                createHTMLKeyValuePair("Analysis", d.uuid) + "<br>" +
                 createHTMLKeyValuePair("Workflow", getWfNameByNode(d)) + "<br>" +
-                createHTMLKeyValuePair("Created", parseISOTimeFormat(d.start)) + "<br>", event);
-
-        }).on("mouseout", function () {
+                createHTMLKeyValuePair("Created", parseISOTimeFormat(d.start)) + "<br>", event);*/
+        }).on("mouseout", function (d) {
             var self = d3.select(this);
-            hideTooltip();
-
+            /*hideTooltip();*/
             self.classed("mouseoverNode", false);
-            self.select(".nodeAttrLabel").text(function (d) {
-                return parseISOTimeFormat(d.start).toString().substr(0, 21) + "..";
-            });
+            self.select(".labels").attr("clip-path", "url(#bbClipId-" + d.autoId + ")");
         });
 
         /* On mouseover subanalysis bounding box. */
@@ -2884,23 +2869,23 @@ var provvisRender = function () {
         /* Node tooltips. */
         node.on("mouseover", function (d) {
             var self = d3.select(this);
-            showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
+            showTooltip(
+                createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
                 createHTMLKeyValuePair("id", d.id) + "<br>" +
                 createHTMLKeyValuePair("col", d.col) + "<br>" +
                 createHTMLKeyValuePair("x", d.x) + "<br>" +
                 createHTMLKeyValuePair("row", d.row) + "<br>" +
                 createHTMLKeyValuePair("y", d.y), event);
-
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
-            showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
+            showTooltip(
+                createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
                 createHTMLKeyValuePair("id", d.id) + "<br>" +
                 createHTMLKeyValuePair("col", d.col) + "<br>" +
                 createHTMLKeyValuePair("x", d.x) + "<br>" +
                 createHTMLKeyValuePair("row", d.row) + "<br>" +
                 createHTMLKeyValuePair("y", d.y), event);
-
         }).on("mouseout", function (d) {
             var self = d3.select(this);
             hideTooltip();
@@ -2917,7 +2902,6 @@ var provvisRender = function () {
                 createHTMLKeyValuePair("x", d.x) + "<br>" +
                 createHTMLKeyValuePair("row", d.row) + "<br>" +
                 createHTMLKeyValuePair("y", d.y), event);
-
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
@@ -2930,7 +2914,6 @@ var provvisRender = function () {
         }).on("mouseout", function (d) {
             var self = d3.select(this);
             hideTooltip();
-
             self.classed("mouseoverNode", false);
             self.select(".labels").attr("clip-path", "url(#bbClipId-" + d.autoId + ")");
         });
@@ -2944,7 +2927,6 @@ var provvisRender = function () {
                 createHTMLKeyValuePair("x", d.x) + "<br>" +
                 createHTMLKeyValuePair("row", d.row) + "<br>" +
                 createHTMLKeyValuePair("y", d.y), event);
-
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
@@ -2957,7 +2939,6 @@ var provvisRender = function () {
         }).on("mouseout", function (d) {
             var self = d3.select(this);
             hideTooltip();
-
             self.classed("mouseoverNode", false);
             self.select(".labels").attr("clip-path", "url(#bbClipId-" + d.autoId + ")");
         });
@@ -3474,8 +3455,8 @@ var provvisRender = function () {
 
         /* TODO: Currently disabled - rewrite for develop branch. */
         /* Handle tooltips. */
-        //handleTooltips();
-        handleDebugTooltips();
+        handleTooltips();
+        //handleDebugTooltips();
 
         /* Collapse on bounding box click.*/
         saBBox.on("click", function (d) {
