@@ -574,8 +574,8 @@ var provvisLayout = function () {
                 /* When successor node has no other incoming edges,
                  insert successor node into result set. */
                 if (!succNode.predLinks.values().some(function (predLink) {
-                    return !predLink.l.ts.removed;
-                }) && !succNode.l.ts.removed) {
+                        return !predLink.l.ts.removed;
+                    }) && !succNode.l.ts.removed) {
                     startNodes.push(succNode);
                     succNode.l.ts.removed = true;
                 }
@@ -1081,11 +1081,11 @@ var provvisLayout = function () {
     var reorderNodes = function (gNodes, san) {
 
         /* Initializations. */
-        gNodes.forEach(function (l,i) {
+        gNodes.forEach(function (l, i) {
 
             /* List which contains the nodes to reorder afterwards. */
             var colList = [];
-            l.forEach(function (n,j) {
+            l.forEach(function (n, j) {
                 n.col = i;
                 n.row = j;
 
@@ -1154,10 +1154,117 @@ var provvisLayout = function () {
     };
 
     /**
+     * Dagre layout for subanalysis.
+     * @param san Subanalysis.
+     */
+    var dagreWorkflowLayout = function (san) {
+        var g = new dagre.graphlib.Graph();
+
+        g.setGraph({});
+
+        g.setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+        san.children.values().forEach( function (n) {
+            g.setNode(n.autoId, { label: n.autoId});
+        });
+
+        san.links.values().forEach( function (l) {
+            g.setEdge(l.source.autoId, l.target.autoId);
+        });
+
+        dagre.layout(g);
+
+        console.log(g);
+
+        var dlNodes = d3.entries(g._nodes);
+
+        dlNodes.forEach( function (n) {
+            san.children.get(n.key).col = parseInt(n.value.y / 50,10);
+            san.children.get(n.key).row = parseInt(n.value.x / 50,10);
+        });
+
+        /* Initialize workflow dimensions. */
+        san.l.depth = d3.max(san.children.values(), function (n) {
+            return n.col;
+        }) + 1;
+        san.l.width = d3.max(san.children.values(), function (n) {
+            return n.row;
+        }) + 1;
+
+        /* Init grid. */
+        initNodeGrid(san);
+
+        /* Set grid cells. */
+        san.children.values().forEach(function (n) {
+            san.l.grid[n.col][n.row] = n;
+        });
+
+    };
+
+    /**
+     * Dagre layout for analysis.
+     * @param san Graph.
+     */
+    var dagreAnalysisLayout = function (graph) {
+        var g = new dagre.graphlib.Graph();
+
+        g.setGraph({});
+
+        g.setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+        graph.aNodes.forEach( function (an) {
+            g.setNode(an.autoId, { label: an.autoId});
+        });
+
+        console.log(graph.aLinks);
+
+        /* Add edges to the graph. */
+        graph.aLinks.forEach( function (l) {
+            g.setEdge(l.source.parent.parent.autoId, l.target.parent.parent.autoId);
+        });
+
+        dagre.layout(g);
+
+        console.log(g);
+
+        var dlANodes = d3.entries(g._nodes);
+
+        console.log(graph.aNodes);
+
+        graph.aNodes.forEach( function (an) {
+            an.col = parseInt(dlANodes.filter(function(d){return d.key===an.autoId.toString();})[0].value.x /50,10);
+            an.row = parseInt(dlANodes.filter(function(d){return d.key===an.autoId.toString();})[0].value.y /50,10);
+        });
+
+        /* Initialize workflow dimensions. */
+        graph.l.depth = d3.max(graph.aNodes, function (an) {
+            return an.col;
+        }) + 1;
+        graph.l.width = d3.max(graph.aNodes, function (an) {
+            return an.row;
+        }) + 1;
+
+        /* Init grid. */
+        initNodeGrid(graph);
+
+        graph.aNodes.forEach( function (an) {
+            graph.l.grid[an.col][an.row] = an;
+        });
+
+    };
+
+    /**
      * Main layout module function.
      * @param graph The main graph object of the provenance visualization.
      */
     var runLayoutPrivate = function (graph) {
+
+        dagreAnalysisLayout(graph);
+
 
         /* ANALYSIS LAYOUT. */
         /* TODO: Refine and cleanup */
@@ -1176,7 +1283,7 @@ var provvisLayout = function () {
 
             /* Reset start nodes and removed flag. */
 
-            startANodes = [];
+            /*startANodes = [];
             startANodes.push(graph.dataset);
             graph.aNodes.forEach(function (an) {
                 an.l.ts.removed = false;
@@ -1190,127 +1297,133 @@ var provvisLayout = function () {
 
             var gANodes = groupNodes(tsANodes);
 
-            /* TODO: Refine and clean up. */
+            *//* TODO: Refine and clean up. *//*
             bclgNodes = layoutNodes(gANodes, graph);
 
-            /* Remove dummy nodes. */
+            *//* Remove dummy nodes. *//*
             //removeDummyNodes(graph);
 
-            /* Reset layout properties for links. */
+            *//* Reset layout properties for links. *//*
             graph.aNodes.forEach(function (an) {
                 an.l.ts.removed = false;
             });
 
             graph.links.forEach(function (l) {
                 l.l.ts.removed = false;
-            });
+            });*/
 
             /* SUBANALYSIS LAYOUT. */
             reorderSubanalysisNodes(bclgNodes);
 
             /* FILES/TOOLS LAYOUT. */
             graph.saNodes.forEach(function (san) {
-                var tsNodes = topSortNodes(san.inputs.values(), san.children.size(), san);
 
-                if (tsNodes !== null) {
-                    /* Assign layers. */
-                    layerNodes(tsNodes, san);
+                var dagreLayout = true;
 
-                    /* Group nodes by layer. */
-                    var gNodes = groupNodes(tsNodes);
-
-                    /* Reorder nodes. */
-                    reorderNodes(gNodes, san);
-
-                    /* TODO: Refine and cleanup. */
-
-                    /* Init rows and visited flag. */
-                    gNodes.forEach(function (gn) {
-                        gn.forEach(function (n) {
-                            n.visited = false;
-                        });
-                    });
-
-                    /* Process layout, for each column. */
-                    gNodes.forEach(function (gn) {
-
-                        /* For each node. */
-                        gn.sort(function (a, b) {
-                            return a.row - b.row;
-                        }).forEach(function (n) {
-
-                            var succs = n.succs.values().filter(function (s) {
-                                return  s.parent === n.parent;
-                            }).sort(function (a, b) {
-                                return a.row - b.row;
-                            });
-
-                            /* Split. */
-                            if (succs.length > 1) {
-
-                                /* Successors were visited before? */
-                                var visited = getNumberofVisitedNodesByArray(succs),
-                                    rowShift = succs.length / 2;
-
-                                /* Shift nodes before and after the branch.
-                                 * But only if there are more than one successor. */
-                                if ((succs.length - visited) > 1) {
-                                    shiftNodesByRows(tsNodes, rowShift, n.col, n.row);
-                                    shiftNodesByRows(tsNodes, rowShift, n.col, n.row + 1);
-                                }
-
-                                var succRow = n.row - rowShift + visited;
-                                succs.forEach(function (sn) {
-                                    if (succs.length % 2 === 0 && succRow === n.row) {
-                                        succRow++;
-                                    }
-
-                                    if (sn.visited === false) {
-                                        sn.row = succRow;
-                                        sn.visited = true;
-                                        succRow++;
-                                    }
-                                });
-                            } else {
-                                succs.forEach(function (sn) {
-                                    sn.row = n.row;
-                                });
-                            }
-                        });
-                    });
-
-
-                    /* Initialize workflow dimensions. */
-                    san.l.depth = d3.max(san.children.values(), function (n) {
-                        return n.col;
-                    }) + 1;
-                    san.l.width = d3.max(san.children.values(), function (n) {
-                        return n.row;
-                    }) + 1;
-
-                    /* Init grid. */
-                    initNodeGrid(san);
-
-                    /* Set grid cells. */
-                    san.children.values().forEach(function (n) {
-                        san.l.grid[n.col][n.row] = n;
-                    });
-
+                if (dagreLayout) {
+                    dagreWorkflowLayout(san);
                 } else {
-                    console.log("Error: Graph is not acyclic!");
+                    var tsNodes = topSortNodes(san.inputs.values(), san.children.size(), san);
+
+                    if (tsNodes !== null) {
+                        /* Assign layers. */
+                        layerNodes(tsNodes, san);
+
+                        /* Group nodes by layer. */
+                        var gNodes = groupNodes(tsNodes);
+
+                        /* Reorder nodes. */
+                        reorderNodes(gNodes, san);
+
+                        /* TODO: Refine and cleanup. */
+
+                        /* Init rows and visited flag. */
+                        gNodes.forEach(function (gn) {
+                            gn.forEach(function (n) {
+                                n.visited = false;
+                            });
+                        });
+
+                        /* Process layout, for each column. */
+                        gNodes.forEach(function (gn) {
+
+                            /* For each node. */
+                            gn.sort(function (a, b) {
+                                return a.row - b.row;
+                            }).forEach(function (n) {
+
+                                var succs = n.succs.values().filter(function (s) {
+                                    return s.parent === n.parent;
+                                }).sort(function (a, b) {
+                                    return a.row - b.row;
+                                });
+
+                                /* Split. */
+                                if (succs.length > 1) {
+
+                                    /* Successors were visited before? */
+                                    var visited = getNumberofVisitedNodesByArray(succs),
+                                        rowShift = succs.length / 2;
+
+                                    /* Shift nodes before and after the branch.
+                                     * But only if there are more than one successor. */
+                                    if ((succs.length - visited) > 1) {
+                                        shiftNodesByRows(tsNodes, rowShift, n.col, n.row);
+                                        shiftNodesByRows(tsNodes, rowShift, n.col, n.row + 1);
+                                    }
+
+                                    var succRow = n.row - rowShift + visited;
+                                    succs.forEach(function (sn) {
+                                        if (succs.length % 2 === 0 && succRow === n.row) {
+                                            succRow++;
+                                        }
+
+                                        if (sn.visited === false) {
+                                            sn.row = succRow;
+                                            sn.visited = true;
+                                            succRow++;
+                                        }
+                                    });
+                                } else {
+                                    succs.forEach(function (sn) {
+                                        sn.row = n.row;
+                                    });
+                                }
+                            });
+                        });
+
+
+                        /* Initialize workflow dimensions. */
+                        san.l.depth = d3.max(san.children.values(), function (n) {
+                            return n.col;
+                        }) + 1;
+                        san.l.width = d3.max(san.children.values(), function (n) {
+                            return n.row;
+                        }) + 1;
+
+                        /* Init grid. */
+                        initNodeGrid(san);
+
+                        /* Set grid cells. */
+                        san.children.values().forEach(function (n) {
+                            san.l.grid[n.col][n.row] = n;
+                        });
+
+                    } else {
+                        console.log("Error: Graph is not acyclic!");
+                    }
                 }
             });
         } else {
             console.log("Error: Graph is not acyclic!");
         }
-
         return bclgNodes;
     };
 
     /**
      * Publish module function.
      */
-    return{
+    return {
         runLayout: function (graph) {
             return runLayoutPrivate(graph);
         }
