@@ -1231,8 +1231,8 @@ var provvisRender = function () {
                     })
                     .attr("width", cell.width - 4)
                     .attr("height", cell.height - 2)
-                    .attr("rx", cell.width / 3)
-                    .attr("ry", cell.height / 3);
+                    .attr("rx", cell.width / 5)
+                    .attr("ry", cell.height / 5);
 
                 /* Draw bounding box. */
                 var analysisBBox = self.append("g")
@@ -1250,8 +1250,8 @@ var provvisRender = function () {
                     .attr("height", function () {
                         return cell.height - 2;
                     })
-                    .attr("rx", cell.width / 3)
-                    .attr("ry", cell.height / 3);
+                    .attr("rx", cell.width / 5)
+                    .attr("ry", cell.height / 5);
 
                 /* Add a clip-path to restrict labels within the cell area. */
                 analysisBBox.append("defs")
@@ -1260,8 +1260,8 @@ var provvisRender = function () {
                     .append("rect")
                     .attr("width", cell.width - 4)
                     .attr("height", cell.height - 2)
-                    .attr("rx", cell.width / 3)
-                    .attr("ry", cell.height / 3);
+                    .attr("rx", cell.width / 5)
+                    .attr("ry", cell.height / 5);
 
                 /* Time as label. */
                 analysisBBox.append("g").classed({"labels": true}).attr("clip-path", "url(#aBBClipId-" + an.autoId + ")")
@@ -1431,8 +1431,8 @@ var provvisRender = function () {
                     .attr("height", function () {
                         return saBBoxCords.y.max - saBBoxCords.y.min;
                     })
-                    .attr("rx", cell.width / 3)
-                    .attr("ry", cell.height / 3);
+                    .attr("rx", cell.width / 5)
+                    .attr("ry", cell.height / 5);
 
                 /* Workflow name as label. */
                 subanalysisBBox.append("g").classed({"labels": true}).attr("clip-path", "url(#saBBClipId-" + san.autoId + ")")
@@ -1973,6 +1973,125 @@ var provvisRender = function () {
     };
 
     /**
+     * Dagre layout for analysis.
+     * @param san Graph.
+     */
+    var dagreDynamicLayout = function (graph) {
+
+        /**
+         * Maps the column/row index to nodes.
+         * @param parent The parent node.
+         */
+        var initNodeGrid = function (parent) {
+            var grid = [];
+
+            for (var i = 0; i < parent.l.depth; i++) {
+                grid.push([]);
+                for (var j = 0; j < parent.l.width; j++) {
+                    grid[i][j] = "undefined";
+                }
+            }
+
+            parent.l.grid = grid;
+        };
+
+        var g = new dagre.graphlib.Graph();
+
+        g.setGraph({rankdir: "LR", nodesep: 50, edgesep: 10, ranksep: 50, marginx: 0, marginy: 0});
+
+        g.setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+        var minCol = 0,
+            maxCol = 0,
+            minRow = 0,
+            maxRow = 0;
+
+        graph.aNodes.forEach( function (an) {
+
+            minCol = !an.hidden ? an.col : d3.min(an.children.values(), function (san) {
+                    return !san.hidden ? an.col + san.col : d3.min(san.children.values(), function (cn) {
+                        return an.col + san.col + cn.col;
+                    });
+                });
+                maxCol = !an.hidden ? an.col : d3.max(an.children.values(), function (san) {
+                    return !san.hidden ? an.col + san.col : d3.max(san.children.values(), function (cn) {
+                        return an.col + san.col + cn.col;
+                    });
+                });
+                minRow = !an.hidden ? an.row : d3.min(an.children.values(), function (san) {
+                    return !san.hidden ? an.row + san.row : d3.min(san.children.values(), function (cn) {
+                        return an.row + san.row + cn.row;
+                    });
+                });
+            maxRow = !an.hidden ? an.row : d3.max(an.children.values(), function (san) {
+                    return !san.hidden ? an.row + san.row : d3.max(san.children.values(), function (cn) {
+                        return an.row + san.row + cn.row;
+                    });
+                });
+
+            var curWidth = (maxCol-minCol)*50;
+            var curHeight = (maxRow-minRow)*50;
+
+            g.setNode(an.autoId, { label: an.autoId, width: curWidth, height: curHeight});
+        });
+
+        graph.aLinks.forEach( function (l) {
+            g.setEdge(l.source.parent.parent.autoId, l.target.parent.parent.autoId, {minlen: 1, weight: 1, width: 0, height:0, labelpos: "r", labeloffset: 10});
+        });
+
+        dagre.layout(g);
+
+        var dlANodes = d3.entries(g._nodes);
+
+        graph.aNodes.forEach( function (an) {
+
+            minCol = !an.hidden ? an.col : d3.min(an.children.values(), function (san) {
+                return !san.hidden ? an.col + san.col : d3.min(san.children.values(), function (cn) {
+                    return an.col + san.col + cn.col;
+                });
+            });
+            maxCol = !an.hidden ? an.col : d3.max(an.children.values(), function (san) {
+                return !san.hidden ? an.col + san.col : d3.max(san.children.values(), function (cn) {
+                    return an.col + san.col + cn.col;
+                });
+            });
+            minRow = !an.hidden ? an.row : d3.min(an.children.values(), function (san) {
+                return !san.hidden ? an.row + san.row : d3.min(san.children.values(), function (cn) {
+                    return an.row + san.row + cn.row;
+                });
+            });
+            maxRow = !an.hidden ? an.row : d3.max(an.children.values(), function (san) {
+                return !san.hidden ? an.row + san.row : d3.max(san.children.values(), function (cn) {
+                    return an.row + san.row + cn.row;
+                });
+            });
+
+            var curColOffset = parseInt((maxCol-minCol)/2,10);
+            var curRowOffset = parseInt((maxRow-minRow)/2,10);
+
+            an.col = parseInt(dlANodes.filter(function(d){return d.key===an.autoId.toString();})[0].value.x /50,10)-curColOffset;
+            an.row = parseInt(dlANodes.filter(function(d){return d.key===an.autoId.toString();})[0].value.y /50,10)-curRowOffset;
+        });
+
+        /* Initialize workflow dimensions. */
+        graph.l.depth = d3.max(graph.aNodes, function (an) {
+            return an.col;
+        }) + 1;
+        graph.l.width = d3.max(graph.aNodes, function (an) {
+            return an.row;
+        }) + 1;
+
+        /* Init grid. */
+        initNodeGrid(graph);
+
+        graph.aNodes.forEach( function (an) {
+            dragAnalysisNode(an, d3.select("#gNodeId-"+an.autoId));
+        });
+    };
+
+    /**
      * Sets the visibility of links and (a)nodes when collapsing or expanding analyses.
      * @param d Node.
      * @param keyStroke Keystroke being pressed at mouse click.
@@ -2019,7 +2138,7 @@ var provvisRender = function () {
                 /* Check if grid cells for expanded subanalyses are occupied. */
 
                 /* Check free space downwards, compute rows to shift and rows to add to the grid. */
-                i = pos.row + 1;
+                /*i = pos.row + 1;
                 while (i < vis.graph.l.width && i < pos.row + d.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
                     i++;
                     hDown.freeSpace++;
@@ -2036,7 +2155,7 @@ var provvisRender = function () {
                 hDown.rowShift = (i === vis.graph.l.width) ? 0 : pos.row + d.l.width - i;
                 hDown.addRows = pos.row + d.l.width + vis.graph.l.width - i - vis.graph.l.width;
 
-                /* Check free space upwards, compute rows to shift and rows to add to the grid. */
+                *//* Check free space upwards, compute rows to shift and rows to add to the grid. *//*
                 i = pos.row - 1;
                 while (i >= 0 && i > pos.row - d.l.width && vis.graph.l.grid[pos.col][i] === "undefined") {
                     i--;
@@ -2058,9 +2177,9 @@ var provvisRender = function () {
                 var k = 0,
                     curCell = "undefined";
 
-                /* Expand downwards. */
+                *//* Expand downwards. *//*
                 if (hDown.fullSpace - hDown.rowShift >= hUp.fullSpace - hUp.rowShift) {
-                    /* Shift cells below. */
+                    *//* Shift cells below. *//*
                     if (hDown.rowShift > 0) {
                         for (k = vis.graph.l.width - 1; k >= pos.row + hDown.freeSpace; k--) {
                             curCell = vis.graph.l.grid[pos.col][k];
@@ -2077,9 +2196,9 @@ var provvisRender = function () {
                         }
                     }
                 }
-                /* Expand upwards. */
+                *//* Expand upwards. *//*
                 else {
-                    /* Shift cells above. */
+                    *//* Shift cells above. *//*
                     if (hUp.rowShift > 0) {
                         for (k = 0; k < pos.row - (hUp.freeSpace - 1); k++) {
                             curCell = vis.graph.l.grid[pos.col][k];
@@ -2100,7 +2219,7 @@ var provvisRender = function () {
                     d.x = d.col * cell.width;
                     d.y = d.row * cell.height;
                     dragAnalysisNode(d, d3.select("#gNodeId-" + d.autoId));
-                }
+                }*/
             }
             /* Shift horizontally. */
             else if (d.nodeType === "subanalysis") {
@@ -2113,7 +2232,7 @@ var provvisRender = function () {
                 clearGridCell(d.parent, {col: d.parent.col, row: d.parent.row});
 
                 /* Shift vertically within the analysis grid. */
-                for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
+                /*for (i = d.row; i < d.l.width - 1 + d.parent.l.width; i++) {
                     if (i < d.row + d.l.width - 1) {
                         d.parent.l.grid[0].splice(d.row + 1, 0, "undefined");
                     } else if (i > d.row + d.l.width - 1 && d.parent.l.grid[0][i] instanceof provvisDecl.Subanalysis) {
@@ -2125,21 +2244,21 @@ var provvisRender = function () {
                 }
                 d.parent.l.width += d.l.width - 1;
 
-                /* Only shift horizontally, when no subanalysis is expanded yet. */
+                *//* Only shift horizontally, when no subanalysis is expanded yet. *//*
                 var isAnyChildNodeVisible = d.parent.children.values().some(function (san) {
                     return san.children.values().some(function (n) {
                         return !n.hidden;
                     });
-                });
+                });*/
 
                 /* Clear workflow nodes. */
                 clearGridCell(d.parent, {col: d.parent.col, row: d.parent.row});
 
                 /* Shift analyses downwards within the same column of the analysis in context. */
-                shiftedAnalysisNodeset = [];
+                /*shiftedAnalysisNodeset = [];
                 for (i = vis.graph.l.width - 1; i > (d.parent.row + d.parent.l.width - d.l.width); i--) {
 
-                    /* Actual analyses to shift. */
+                    *//* Actual analyses to shift. *//*
                     if (vis.graph.l.grid[pos.col][i] && vis.graph.l.grid[pos.col][i] !== "undefined") {
 
                         curAN = vis.graph.l.grid[pos.col][i];
@@ -2147,44 +2266,44 @@ var provvisRender = function () {
                             curAN = curAN.parent;
                         }
 
-                        /* Actual analyses to shift. Do not shift any analysis twice. */
+                        *//* Actual analyses to shift. Do not shift any analysis twice. *//*
                         if (shiftedAnalysisNodeset.indexOf(curAN) === -1) {
                             dragStartAnalysisPos = {col: curAN.col, row: curAN.row};
                             curAN.row = curAN.row + d.l.width - 1;
                             curAN.y = curAN.row * cell.height;
 
-                            /* Update grid cells.*/
+                            *//* Update grid cells.*//*
                             dragAnalysisNode(curAN, d3.select("#gNodeId-" + curAN.autoId));
                             shiftedAnalysisNodeset.push(curAN);
                         }
                     }
-                }
+                }*/
 
                 /* Shift analyses horizontally. */
-                if (!isAnyChildNodeVisible) {
+                /*if (!isAnyChildNodeVisible) {
 
-                    /* Check free space. */
+                    *//* Check free space. *//*
                     if (checkFreeSubanalysisExpansionSpace(d)) {
 
                         shiftedAnalysisNodeset = [];
                         for (i = vis.graph.l.depth - 1; i > d.parent.col; i--) {
                             for (j = 0; j < vis.graph.l.width; j++) {
 
-                                /* Check cell if not empty. */
+                                *//* Check cell if not empty. *//*
                                 if (vis.graph.l.grid[i][j] && vis.graph.l.grid[i][j] !== "undefined") {
                                     curAN = vis.graph.l.grid[i][j];
-                                    /* In case the current cell is occupied by a child of an analysis. */
+                                    *//* In case the current cell is occupied by a child of an analysis. *//*
                                     while (!(curAN instanceof provvisDecl.Analysis)) {
                                         curAN = curAN.parent;
                                     }
 
-                                    /* Actual analyses to shift. Do not shift any analysis twice. */
+                                    *//* Actual analyses to shift. Do not shift any analysis twice. *//*
                                     if (shiftedAnalysisNodeset.indexOf(curAN) === -1) {
                                         dragStartAnalysisPos = {col: curAN.col, row: curAN.row};
                                         curAN.col = curAN.col + d.l.depth - 1;
                                         curAN.x = curAN.col * cell.width;
 
-                                        /* Update grid cells. */
+                                        *//* Update grid cells. *//*
                                         dragAnalysisNode(curAN, d3.select("#gNodeId-" + curAN.autoId));
                                         shiftedAnalysisNodeset.push(curAN);
                                     }
@@ -2192,7 +2311,7 @@ var provvisRender = function () {
                             }
                         }
                     }
-                }
+                }*/
             }
 
             /* Set node visibility. */
@@ -2320,20 +2439,20 @@ var provvisRender = function () {
                         setGridCellVal(pos.col + san.col, pos.row + san.row, "undefined");
                     }
                 });
-
-                /* Tighten subanalysis nodes vertically. */
+/*
+                *//* Tighten subanalysis nodes vertically. *//*
                 if (!d.hidden) {
                     var nextRow = 0;
                     curAN.children.values().sort(function (a, b) {
                         return a.row - b.row;
                     }).forEach(function (san) {
 
-                        /* Set current row. */
+                        *//* Set current row. *//*
                         san.row = nextRow;
                         san.y = san.row * cell.height;
                         updateNode(d3.select("#gNodeId-" + san.autoId), san, san.x, san.y);
 
-                        /* Set next row. */
+                        *//* Set next row. *//*
                         if (san === d.parent) {
                             san.parent.l.grid[0].splice(san.row + 1, san.l.width - 1);
                             curAN.l.width -= san.l.width - 1;
@@ -2344,7 +2463,7 @@ var provvisRender = function () {
                             nextRow += san.l.width;
                         }
                     });
-                }
+                }*/
             }
             vis.graph.l.depth = vis.graph.l.grid.length;
 
@@ -2396,12 +2515,12 @@ var provvisRender = function () {
                 setGridCell(curAN);
 
                 /* Vertical compaction. */
-                if (curAN.uuid !== "dataset") {
+                /*if (curAN.uuid !== "dataset") {
                     postprocessGridColumn(curAN.col);
                     for (i = curAN.col; i < vis.graph.l.depth; i++) {
                         postprocessGridColumn(i);
                     }
-                }
+                }*/
 
                 /* Splice grid. */
                 spliceGridColumns(curAN);
@@ -2441,8 +2560,8 @@ var provvisRender = function () {
                     d3.select("#aBBClipId-" + curAN.autoId).select("rect")
                         .attr("width", cell.width - 4)
                         .attr("height", cell.height - 2)
-                        .attr("rx", cell.width / 3)
-                        .attr("ry", cell.height / 3);
+                        .attr("rx", cell.width / 5)
+                        .attr("ry", cell.height / 5);
                 }
                 /* Update links. */
                 updateLink(curAN, curAN.x, curAN.y);
@@ -2451,12 +2570,12 @@ var provvisRender = function () {
                 setGridCell(curAN);
 
                 /* Vertical compaction. */
-                if (curAN.uuid !== "dataset") {
+                /*if (curAN.uuid !== "dataset") {
                     postprocessGridColumn(curAN.col);
                     for (i = curAN.col; i < vis.graph.l.depth; i++) {
                         postprocessGridColumn(i);
                     }
-                }
+                }*/
 
                 /* If the selected subanalysis is the last remaining to collapse. */
                 /*if (!curAN.children.values().some(function (san) {
@@ -2473,6 +2592,8 @@ var provvisRender = function () {
 
         //console.log("#GRID: ");
         //console.log(vis.graph.l.grid);
+
+        dagreDynamicLayout(vis.graph);
     };
 
     /**

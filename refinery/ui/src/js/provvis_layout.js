@@ -1160,29 +1160,27 @@ var provvisLayout = function () {
     var dagreWorkflowLayout = function (san) {
         var g = new dagre.graphlib.Graph();
 
-        g.setGraph({});
+        g.setGraph({rankdir: "LR", nodesep: 50, edgesep: 10, ranksep: 50, marginx: 0, marginy: 0});
 
         g.setDefaultEdgeLabel(function () {
             return {};
         });
 
         san.children.values().forEach( function (n) {
-            g.setNode(n.autoId, { label: n.autoId});
+            g.setNode(n.autoId, { label: n.autoId, width: 0, height: 0});
         });
 
         san.links.values().forEach( function (l) {
-            g.setEdge(l.source.autoId, l.target.autoId);
+            g.setEdge(l.source.autoId, l.target.autoId, {minlen: 1, weight: 1, width: 0, height:0, labelpos: "r", labeloffset: 10});
         });
 
         dagre.layout(g);
 
-        console.log(g);
-
         var dlNodes = d3.entries(g._nodes);
 
         dlNodes.forEach( function (n) {
-            san.children.get(n.key).col = parseInt(n.value.y / 50,10);
-            san.children.get(n.key).row = parseInt(n.value.x / 50,10);
+            san.children.get(n.key).col = parseInt(n.value.x / 50,10);
+            san.children.get(n.key).row = parseInt(n.value.y / 50,10);
         });
 
         /* Initialize workflow dimensions. */
@@ -1200,7 +1198,6 @@ var provvisLayout = function () {
         san.children.values().forEach(function (n) {
             san.l.grid[n.col][n.row] = n;
         });
-
     };
 
     /**
@@ -1210,30 +1207,23 @@ var provvisLayout = function () {
     var dagreAnalysisLayout = function (graph) {
         var g = new dagre.graphlib.Graph();
 
-        g.setGraph({});
+        g.setGraph({rankdir: "LR", nodesep: 50, edgesep: 10, ranksep: 50, marginx: 0, marginy: 0});
 
         g.setDefaultEdgeLabel(function () {
             return {};
         });
 
         graph.aNodes.forEach( function (an) {
-            g.setNode(an.autoId, { label: an.autoId});
+            g.setNode(an.autoId, { label: an.autoId, width: 0, height: 0});
         });
 
-        console.log(graph.aLinks);
-
-        /* Add edges to the graph. */
         graph.aLinks.forEach( function (l) {
-            g.setEdge(l.source.parent.parent.autoId, l.target.parent.parent.autoId);
+            g.setEdge(l.source.parent.parent.autoId, l.target.parent.parent.autoId, {minlen: 1, weight: 1, width: 0, height:0, labelpos: "r", labeloffset: 10});
         });
 
         dagre.layout(g);
 
-        console.log(g);
-
         var dlANodes = d3.entries(g._nodes);
-
-        console.log(graph.aNodes);
 
         graph.aNodes.forEach( function (an) {
             an.col = parseInt(dlANodes.filter(function(d){return d.key===an.autoId.toString();})[0].value.x /50,10);
@@ -1283,7 +1273,7 @@ var provvisLayout = function () {
 
             /* Reset start nodes and removed flag. */
 
-            /*startANodes = [];
+            startANodes = [];
             startANodes.push(graph.dataset);
             graph.aNodes.forEach(function (an) {
                 an.l.ts.removed = false;
@@ -1297,7 +1287,7 @@ var provvisLayout = function () {
 
             var gANodes = groupNodes(tsANodes);
 
-            *//* TODO: Refine and clean up. *//*
+            /* TODO: Refine and clean up. *//*
             bclgNodes = layoutNodes(gANodes, graph);
 
             *//* Remove dummy nodes. *//*
@@ -1313,7 +1303,9 @@ var provvisLayout = function () {
             });*/
 
             /* SUBANALYSIS LAYOUT. */
-            reorderSubanalysisNodes(bclgNodes);
+            //reorderSubanalysisNodes(bclgNodes);
+
+            reorderSubanalysisNodes(gANodes);
 
             /* FILES/TOOLS LAYOUT. */
             graph.saNodes.forEach(function (san) {
