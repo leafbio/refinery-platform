@@ -1993,20 +1993,14 @@ var provvisRender = function () {
             var self = d3.select(this);
             showTooltip(
                 createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-                createHTMLKeyValuePair("id", d.id) + "<br>" +
-                createHTMLKeyValuePair("col", d.col) + "<br>" +
                 createHTMLKeyValuePair("x", d.x) + "<br>" +
-                createHTMLKeyValuePair("row", d.row) + "<br>" +
                 createHTMLKeyValuePair("y", d.y), event);
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
             showTooltip(
                 createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-                createHTMLKeyValuePair("id", d.id) + "<br>" +
-                createHTMLKeyValuePair("col", d.col) + "<br>" +
                 createHTMLKeyValuePair("x", d.x) + "<br>" +
-                createHTMLKeyValuePair("row", d.row) + "<br>" +
                 createHTMLKeyValuePair("y", d.y), event);
         }).on("mouseout", function (d) {
             var self = d3.select(this);
@@ -2019,19 +2013,13 @@ var provvisRender = function () {
         saNode.on("mouseover", function (d) {
             var self = d3.select(this);
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
-            createHTMLKeyValuePair("col", d.col) + "<br>" +
             createHTMLKeyValuePair("x", d.x) + "<br>" +
-            createHTMLKeyValuePair("row", d.row) + "<br>" +
             createHTMLKeyValuePair("y", d.y), event);
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
-            createHTMLKeyValuePair("col", d.col) + "<br>" +
             createHTMLKeyValuePair("x", d.x) + "<br>" +
-            createHTMLKeyValuePair("row", d.row) + "<br>" +
             createHTMLKeyValuePair("y", d.y), event);
         }).on("mouseout", function (d) {
             var self = d3.select(this);
@@ -2044,19 +2032,13 @@ var provvisRender = function () {
         aNode.on("mouseover", function (d) {
             var self = d3.select(this);
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
-            createHTMLKeyValuePair("col", d.col) + "<br>" +
             createHTMLKeyValuePair("x", d.x) + "<br>" +
-            createHTMLKeyValuePair("row", d.row) + "<br>" +
             createHTMLKeyValuePair("y", d.y), event);
             self.classed("mouseoverNode", true);
             self.select(".labels").attr("clip-path", "");
         }).on("mousemove", function (d) {
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
-            createHTMLKeyValuePair("col", d.col) + "<br>" +
             createHTMLKeyValuePair("x", d.x) + "<br>" +
-            createHTMLKeyValuePair("row", d.row) + "<br>" +
             createHTMLKeyValuePair("y", d.y), event);
         }).on("mouseout", function (d) {
             var self = d3.select(this);
@@ -2090,12 +2072,10 @@ var provvisRender = function () {
         /* Link tooltips. */
         link.on("mouseover", function (d) {
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
             createHTMLKeyValuePair("src", d.source.autoId) + "<br>" +
             createHTMLKeyValuePair("tar", d.target.autoId), event);
         }).on("mousemove", function (d) {
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
             createHTMLKeyValuePair("src", d.source.autoId) + "<br>" +
             createHTMLKeyValuePair("tar", d.target.autoId), event);
         }).on("mouseout", function () {
@@ -2104,12 +2084,10 @@ var provvisRender = function () {
 
         aLink.on("mouseover", function (d) {
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
             createHTMLKeyValuePair("src", d.source.autoId) + "<br>" +
             createHTMLKeyValuePair("tar", d.target.autoId), event);
         }).on("mousemove", function (d) {
             showTooltip(createHTMLKeyValuePair("autoId", d.autoId) + "<br>" +
-            createHTMLKeyValuePair("id", d.id) + "<br>" +
             createHTMLKeyValuePair("src", d.source.autoId) + "<br>" +
             createHTMLKeyValuePair("tar", d.target.autoId), event);
         }).on("mouseout", function () {
@@ -2512,8 +2490,8 @@ var provvisRender = function () {
 
         /* TODO: Currently disabled - rewrite for develop branch. */
         /* Handle tooltips. */
-        //handleTooltips();
-        handleDebugTooltips();
+        handleTooltips();
+        //handleDebugTooltips();
 
         /* Collapse on bounding box click.*/
         saBBox.on("click", function (d) {
