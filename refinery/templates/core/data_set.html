@@ -599,7 +599,6 @@
 {% block script %}
   <script type="text/javascript" src="{{ STATIC_URL }}js/d3/d3.v3.min.js"></script>
   <script type="text/javascript" src="{{ STATIC_URL }}js/d3/fisheye.js"></script>
-  <script type="text/javascript" src="{{ STATIC_URL }}js/dagre/dagre.min.js"></script>
   <script type="text/javascript" src="{{ STATIC_URL }}js/underscore/underscore-min.js"></script>
   <script type="text/javascript" src="{{ STATIC_URL }}js/backbone/backbone-min.js"></script>
   <script type="text/javascript" src="{{ STATIC_URL }}js/backbone-relational/backbone-relational.js"></script>
@@ -677,6 +676,9 @@
   <script type="text/javascript" src="{{ STATIC_URL }}js/refinery/core/data_set_monitor.js"></script>
   
   <!-- provenance visualization -->
+<script type="text/javascript" src="{% static "vendor/lodash/dist/lodash.min.js" %}"></script>
+<script type="text/javascript" src="{% static "vendor/graphlib/dist/graphlib.core.min.js" %}"></script>
+<script type="text/javascript" src="{% static "vendor/dagre/dist/dagre.core.min.js" %}"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/provvis_decl.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/provvis_init.js"></script>
 <script type="text/javascript" src="{{ STATIC_URL }}js/provvis_layout.js"></script>
