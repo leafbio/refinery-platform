@@ -16,16 +16,14 @@ var provvisLayout = function () {
         /* For each successor node. */
         var handleSuccessorNodes = function (curNode) {
 
-            /* When the analysis layout is computed, links occur between dummy nodes (Analysis) and Nodes or Analysis.
-             * In order to distinct both cases, the connection between dummy nodes and nodes is preserved by saving
-             * the id of a node rather than its parent analysis id. */
+            /* When the analysis layout is computed, links occur between Nodes or analyses. */
             if (curNode instanceof provvisDecl.Node && parent instanceof provvisDecl.ProvGraph) {
                 curNode = curNode.parent.parent;
             }
 
             /* Get successors. */
             curNode.succs.values().filter(function (s) {
-                return s.parent === null || s.parent === parent || curNode.uuid === "dummy";
+                return s.parent === null || s.parent === parent;
             }).forEach(function (succNode) {
                 if (succNode instanceof provvisDecl.Node && parent instanceof provvisDecl.ProvGraph) {
                     succNode = succNode.parent.parent;
@@ -34,7 +32,7 @@ var provvisLayout = function () {
                 /* Mark edge as removed. */
                 succNode.predLinks.values().forEach(function (predLink) {
 
-                    /* When pred node is of type dummy, the source node directly is an analysis. */
+                    /* The source node directly is an analysis. */
                     var predLinkNode = null;
                     if (curNode instanceof provvisDecl.Analysis) {
                         if (predLink.source instanceof provvisDecl.Analysis) {

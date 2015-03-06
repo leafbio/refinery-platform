@@ -40,6 +40,11 @@ var provvisRender = function () {
 
     var nodeLinkTransitionTime = 150;
 
+    var aNodesBAK = [];
+    var saNodesBAK = [];
+    var nodesBAK = [];
+    var aLinksBAK = [];
+
     /* Simple tooltips by NG. */
     var tooltip = d3.select("body")
         .append("div")
@@ -89,6 +94,7 @@ var provvisRender = function () {
         return nset;
     };
 
+    /* TODO: Performance issue - quite slow. */
     /**
      * On doi change, update node doi labels.
      */
@@ -784,12 +790,7 @@ var provvisRender = function () {
         analysis = vis.canvas.append("g").classed("analyses", true).selectAll(".analysis")
             .data(aNodes)
             .enter().append("g")
-            .classed("analysis", function (d) {
-                return d.analysis !== "dummy";
-            })
-            .classed("dummy", function (d) {
-                return d.analysis === "dummy";
-            })
+            .classed("analysis", true)
             .attr("id", function (d) {
                 return "gNodeId-" + d.autoId;
             })
@@ -801,105 +802,103 @@ var provvisRender = function () {
             });
 
         analysis.each(function (an) {
-            if (an.analysis !== "dummy") {
-                var self = d3.select(this);
+            var self = d3.select(this);
 
-                /* Add a clip-path to restrict labels within the cell area. */
-                self.append("defs")
-                    .append("clipPath")
-                    .attr("id", "bbClipId-" + an.autoId)
-                    .append("rect")
-                    .attr("transform", function () {
-                        return "translate(" + (-cell.width / 2 + 1) + "," + (-cell.height / 2 + 1) + ")";
-                    })
-                    .attr("width", cell.width - 4)
-                    .attr("height", cell.height - 2)
-                    .attr("rx", cell.width / 5)
-                    .attr("ry", cell.height / 5);
+            /* Add a clip-path to restrict labels within the cell area. */
+            self.append("defs")
+                .append("clipPath")
+                .attr("id", "bbClipId-" + an.autoId)
+                .append("rect")
+                .attr("transform", function () {
+                    return "translate(" + (-cell.width / 2 + 1) + "," + (-cell.height / 2 + 1) + ")";
+                })
+                .attr("width", cell.width - 4)
+                .attr("height", cell.height - 2)
+                .attr("rx", cell.width / 5)
+                .attr("ry", cell.height / 5);
 
-                /* Draw bounding box. */
-                var analysisBBox = self.append("g")
-                    .attr("id", function () {
-                        return "BBoxId-" + an.autoId;
-                    }).classed({"aBBox": true, "BBox": true})
-                    .attr("transform", function () {
-                        return "translate(" + (-cell.width / 2 + 1) + "," + (-cell.height / 2 + 1) + ")";
-                    });
+            /* Draw bounding box. */
+            var analysisBBox = self.append("g")
+                .attr("id", function () {
+                    return "BBoxId-" + an.autoId;
+                }).classed({"aBBox": true, "BBox": true})
+                .attr("transform", function () {
+                    return "translate(" + (-cell.width / 2 + 1) + "," + (-cell.height / 2 + 1) + ")";
+                });
 
-                analysisBBox.append("rect")
-                    .attr("width", function () {
-                        return cell.width - 2;
-                    })
-                    .attr("height", function () {
-                        return cell.height - 2;
-                    })
-                    .attr("rx", cell.width / 5)
-                    .attr("ry", cell.height / 5);
+            analysisBBox.append("rect")
+                .attr("width", function () {
+                    return cell.width - 2;
+                })
+                .attr("height", function () {
+                    return cell.height - 2;
+                })
+                .attr("rx", cell.width / 5)
+                .attr("ry", cell.height / 5);
 
-                /* Add a clip-path to restrict labels within the cell area. */
-                analysisBBox.append("defs")
-                    .append("clipPath")
-                    .attr("id", "aBBClipId-" + an.autoId)
-                    .append("rect")
-                    .attr("width", cell.width - 4)
-                    .attr("height", cell.height - 2)
-                    .attr("rx", cell.width / 5)
-                    .attr("ry", cell.height / 5);
+            /* Add a clip-path to restrict labels within the cell area. */
+            analysisBBox.append("defs")
+                .append("clipPath")
+                .attr("id", "aBBClipId-" + an.autoId)
+                .append("rect")
+                .attr("width", cell.width - 4)
+                .attr("height", cell.height - 2)
+                .attr("rx", cell.width / 5)
+                .attr("ry", cell.height / 5);
 
-                /* Time as label. */
-                analysisBBox.append("g").classed({"labels": true}).attr("clip-path", "url(#aBBClipId-" + an.autoId + ")")
-                    .append("text")
-                    .attr("transform", function () {
-                        return "translate(" + 4 + "," + (vis.radius) + ")";
-                    })
-                    .attr("class", "aBBoxLabel")
-                    .text(function (d) {
-                        return createCustomTimeFormat(d.start).toString();
-                    });
+            /* Time as label. */
+            analysisBBox.append("g").classed({"labels": true}).attr("clip-path", "url(#aBBClipId-" + an.autoId + ")")
+                .append("text")
+                .attr("transform", function () {
+                    return "translate(" + 4 + "," + (vis.radius) + ")";
+                })
+                .attr("class", "aBBoxLabel")
+                .text(function (d) {
+                    return createCustomTimeFormat(d.start).toString();
+                });
 
-                /* Draw analysis node. */
-                var analysisNode = self.append("g")
-                    .attr("id", function () {
-                        return "nodeId-" + an.autoId;
-                    })
-                    .classed({"aNode": true, "filteredNode": true, "blendedNode": false, "selectedNode": false});
+            /* Draw analysis node. */
+            var analysisNode = self.append("g")
+                .attr("id", function () {
+                    return "nodeId-" + an.autoId;
+                })
+                .classed({"aNode": true, "filteredNode": true, "blendedNode": false, "selectedNode": false});
 
-                self.append("g").classed({"children": true});
+            self.append("g").classed({"children": true});
 
-                var aGlyph = analysisNode.append("g").classed({"glyph": true}),
-                    aLabels = analysisNode.append("g").classed({"labels": true})
-                        .attr("clip-path", "url(#bbClipId-" + an.autoId + ")");
+            var aGlyph = analysisNode.append("g").classed({"glyph": true}),
+                aLabels = analysisNode.append("g").classed({"labels": true})
+                    .attr("clip-path", "url(#bbClipId-" + an.autoId + ")");
 
-                aGlyph.append("polygon")
-                    .attr("points", function () {
-                        return "0," + (vis.radius) + " " +
-                            (vis.radius) + "," + (-0.5 * vis.radius) + " " +
-                            (vis.radius) + "," + (0.5 * vis.radius) + " " +
-                            "0" + "," + (0.5 * vis.radius) + " " +
-                            (-vis.radius) + "," + (0.5 * vis.radius) + " " +
-                            (-vis.radius) + "," + (-0.5 * vis.radius);
-                    });
+            aGlyph.append("polygon")
+                .attr("points", function () {
+                    return "0," + (vis.radius) + " " +
+                        (vis.radius) + "," + (-0.5 * vis.radius) + " " +
+                        (vis.radius) + "," + (0.5 * vis.radius) + " " +
+                        "0" + "," + (0.5 * vis.radius) + " " +
+                        (-vis.radius) + "," + (0.5 * vis.radius) + " " +
+                        (-vis.radius) + "," + (-0.5 * vis.radius);
+                });
 
-                /* Add text labels. */
-                aLabels.append("text")
-                    .text(function (d) {
-                        return d.doi.doiWeightedSum;
-                    }).attr("class", "nodeDoiLabel")
-                    .attr("text-anchor", "left")
-                    .attr("dominant-baseline", "central")
-                    .style("display", "none");
+            /* Add text labels. */
+            aLabels.append("text")
+                .text(function (d) {
+                    return d.doi.doiWeightedSum;
+                }).attr("class", "nodeDoiLabel")
+                .attr("text-anchor", "left")
+                .attr("dominant-baseline", "central")
+                .style("display", "none");
 
-                aLabels.append("text")
-                    .attr("transform", function () {
-                        return "translate(" + (-cell.width / 2 + 4) + "," + (vis.radius * 1.5) + ")";
-                    })
-                    .text(function (d) {
-                        return d.children.size() + " x " + d.wfName.toString();
-                    }).attr("class", "analysisLabel")
-                    .attr("text-anchor", "left")
-                    .attr("dominant-baseline", "top")
-                    .style("display", "inline");
-            }
+            aLabels.append("text")
+                .attr("transform", function () {
+                    return "translate(" + (-cell.width / 2 + 4) + "," + (vis.radius * 1.5) + ")";
+                })
+                .text(function (d) {
+                    return d.children.size() + " x " + d.wfName.toString();
+                }).attr("class", "analysisLabel")
+                .attr("text-anchor", "left")
+                .attr("dominant-baseline", "top")
+                .style("display", "inline");
         });
 
         /* Set dom elements. */
@@ -1275,7 +1274,7 @@ var provvisRender = function () {
             curHeight = 0;
 
         graph.aNodes.forEach(function (an) {
-            anBBoxCoords = getABBoxCoords(an);
+            anBBoxCoords = getABBoxCoords(an,0);
             curWidth = anBBoxCoords.x.max - anBBoxCoords.x.min;
             curHeight = anBBoxCoords.y.max - anBBoxCoords.y.min;
 
@@ -1559,9 +1558,7 @@ var provvisRender = function () {
         /* Recompute layout. */
         dagreDynamicLayout(vis.graph);
 
-        if (keyStroke === "e") {
-            fitGraphToWindow(nodeLinkTransitionTime);
-        }
+        fitGraphToWindow(nodeLinkTransitionTime);
     };
 
     /**
@@ -1585,7 +1582,7 @@ var provvisRender = function () {
         }
 
         /* TODO: Temporarily disabled. */
-        //updateNodeDoi();
+        updateNodeDoi();
     };
 
     /**
@@ -2097,7 +2094,7 @@ var provvisRender = function () {
             d3.select(this).classed("hiddenNode", true);
 
             /* Compute bounding box for analysis child nodes. */
-            var anBBoxCoords = getABBoxCoords(an);
+            var anBBoxCoords = getABBoxCoords(an, 1);
 
             /* Adjust analysis bounding box. */
             d3.select("#BBoxId-" + an.autoId).select("rect")
@@ -2259,18 +2256,21 @@ var provvisRender = function () {
     var handleToolbar = function (graph) {
 
         $("#prov-ctrl-analyses-click").click(function () {
-            /* TODO: Temporarily disabled. */
-            //showAllAnalyses();
+            showAllAnalyses();
+            dagreDynamicLayout(graph);
+            fitGraphToWindow(nodeLinkTransitionTime);
         });
 
         $("#prov-ctrl-subanalyses-click").click(function () {
-            /* TODO: Temporarily disabled. */
-            //showAllSubanalyses();
+            showAllSubanalyses();
+            dagreDynamicLayout(graph);
+            fitGraphToWindow(nodeLinkTransitionTime);
         });
 
         $("#prov-ctrl-files-click").click(function () {
-            /* TODO: Temporarily disabled. */
-            //showAllNodes();
+            showAllNodes();
+            dagreDynamicLayout(graph);
+            fitGraphToWindow(nodeLinkTransitionTime);
         });
 
         /* Switch link styles. */
@@ -2606,6 +2606,11 @@ var provvisRender = function () {
         vis = provVis;
         cell = provVis.cell;
 
+        aNodesBAK = vis.graph.aNodes;
+        saNodesBAK = vis.graph.saNodes;
+        nodesBAK = vis.graph.nodes;
+        aLinksBAK = vis.graph.aLinks;
+
         analysisWorkflowMap = vis.graph.analysisWorkflowMap;
 
         width = vis.graph.l.width;
@@ -2659,6 +2664,11 @@ var provvisRender = function () {
 
         if (solrResponse instanceof SolrResponse) {
 
+            vis.graph.aNodes = aNodesBAK;
+            vis.graph.saNodes = saNodesBAK;
+            vis.graph.nodes = nodesBAK;
+            vis.graph.aLinks = aLinksBAK;
+
             /* Copy filtered nodes. */
             solrResponse.getDocumentList().forEach(function (d) {
                 selNodes.push(vis.graph.nodeMap.get(d.uuid));
@@ -2690,10 +2700,7 @@ var provvisRender = function () {
 
             /* Update analysis node filter. */
             vis.graph.aNodes.forEach(function (an) {
-                if (an.uuid === "dummy") {
-                    an.filtered = false;
-                }
-                else if (an.children.values().some(function (san) {
+                if (an.children.values().some(function (san) {
                         return san.filtered;
                     })) {
                     an.filtered = true;
@@ -2703,28 +2710,18 @@ var provvisRender = function () {
                 an.doi.filteredChanged();
             });
 
-            /* Update dummy paths based on start and end node. */
-            vis.graph.aNodes.filter(function (dan) {
-                return dan.uuid === "dummy";
-            }).forEach(function (an) {
-                var curAN = an;
+            /* On filter action 'hide', splice and recompute graph. */
+            if (filterAction === "hide") {
+                vis.graph.aNodes = vis.graph.aNodes.filter(function (an) {return an.filtered;});
+                vis.graph.saNodes = vis.graph.saNodes.filter(function (san) {return san.filtered;});
+                vis.graph.nodes = vis.graph.nodes.filter(function (n) {return n.filtered;});
+                vis.graph.aLinks = vis.graph.aLinks.filter(function (al) {
+                    return vis.graph.aNodes.indexOf(al.source.parent.parent) !== -1 && vis.graph.aNodes.indexOf(al.target.parent.parent) !== -1;
+                });
+            }
 
-                /* Start node of dummy path. */
-                if (curAN.preds.values()[0].uuid !== "dummy" && curAN.preds.values()[0].filtered) {
-                    while (curAN.succs.values()[0].uuid === "dummy") {
-                        curAN = curAN.succs.values()[0];
-                    }
-
-                    /* End node of dummy path. If both start and end node are filtered, set path as filtered. */
-                    if (curAN.succs.values()[0].uuid !== "dummy" && curAN.succs.values()[0].filtered) {
-                        while (!curAN.preds.values()[0].filtered) {
-                            curAN.filtered = true;
-                            curAN = curAN.preds.values()[0];
-                        }
-                        curAN.filtered = true;
-                    }
-                }
-            });
+            dagreDynamicLayout(vis.graph);
+            fitGraphToWindow(nodeLinkTransitionTime);
 
             updateNodeDoi();
         }

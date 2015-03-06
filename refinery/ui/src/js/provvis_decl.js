@@ -331,15 +331,7 @@ var provvisDecl = function () {
         this.l = {
 
             /* Top sort markings [Kahn 1962]. */
-            ts: {removed: false},
-
-            /* Vertical coord assignment markings [Brandes and Köpf 2002]. */
-            neighbor: false,
-            type0: false,
-            type1: false,
-
-            /* Replaced by dummy links. */
-            gap: false
+            ts: {removed: false}
         };
 
         Link.numInstances = (Link.numInstances || 0) + 1;
