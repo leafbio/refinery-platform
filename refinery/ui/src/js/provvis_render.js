@@ -519,12 +519,17 @@ var provvisRender = function () {
      * @param vis The provenance visualization root object.
      */
     var filterAnalysesByTime = function (timeThreshold, vis) {
+        vis.graph.aNodes = aNodesBAK;
+        vis.graph.saNodes = saNodesBAK;
+        vis.graph.nodes = nodesBAK;
+        vis.graph.aLinks = aLinksBAK;
+
         var selAnalyses = vis.graph.aNodes.filter(function (an) {
             return parseISOTimeFormat(an.start) >= timeThreshold;
         });
 
         /* Set (un)filtered analyses. */
-        aNode.each(function (an) {
+        vis.graph.aNodes.forEach(function (an) {
             if (selAnalyses.indexOf(an) === -1) {
                 an.filtered = false;
                 an.children.values().forEach(function (san) {
@@ -544,6 +549,18 @@ var provvisRender = function () {
             }
         });
 
+        /* On filter action 'hide', splice and recompute graph. */
+        if (filterAction === "hide") {
+            vis.graph.aNodes = vis.graph.aNodes.filter(function (an) {return an.filtered;});
+            vis.graph.saNodes = vis.graph.saNodes.filter(function (san) {return san.filtered;});
+            vis.graph.nodes = vis.graph.nodes.filter(function (n) {return n.filtered;});
+            vis.graph.aLinks = vis.graph.aLinks.filter(function (al) {
+                return vis.graph.aNodes.indexOf(al.source.parent.parent) !== -1 && vis.graph.aNodes.indexOf(al.target.parent.parent) !== -1;
+            });
+        }
+
+        dagreDynamicLayout(vis.graph);
+        fitGraphToWindow(nodeLinkTransitionTime);
         updateNodeDoi();
     };
 
@@ -2722,7 +2739,6 @@ var provvisRender = function () {
 
             dagreDynamicLayout(vis.graph);
             fitGraphToWindow(nodeLinkTransitionTime);
-
             updateNodeDoi();
         }
         lastSolrResponse = solrResponse;
