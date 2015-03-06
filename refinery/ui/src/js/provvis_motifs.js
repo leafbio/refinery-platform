@@ -63,7 +63,7 @@ var provvisMotifs = function () {
      * Publish module function.
      */
     return{
-        runMotifs: function (graph) {
+        run: function (graph) {
             runMotifsPrivate(graph);
         }
     };
