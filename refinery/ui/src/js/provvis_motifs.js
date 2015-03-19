@@ -56,7 +56,7 @@ var provvisMotifs = function () {
     var createLayerNodes = function (graph) {
 
         var layers = [],
-            layerNodes = d3.map(),
+            lNodes = d3.map(),
             layerId = 0;
 
         /* Iterate breath first search. */
@@ -145,37 +145,44 @@ var provvisMotifs = function () {
                     layer = Object.create(null);
 
                 if (!(layers[i].has(keyStr + "-" + an.motif.autoId))) {
-                    layer = new provvisDecl.Layer(layerId, an.motif, graph, true);
+                    layer = new provvisDecl.Layer(layerId, an.motif, graph, false);
                     layer.children.set(an.autoId, an);
                     an.layer = layer;
-                    layerNodes.set(layer.autoId, an.layer);
+                    lNodes.set(layer.autoId, an.layer);
                     layerId++;
 
                     layers[i].set(keyStr + "-" + an.motif.autoId, layer.autoId);
                 } else {
-                    layer = layerNodes.get(layers[i].get(keyStr + "-" + an.motif.autoId));
+                    layer = lNodes.get(layers[i].get(keyStr + "-" + an.motif.autoId));
                     layer.children.set(an.autoId, an);
                     an.layer = layer;
                 }
 
             });
         });
-        return layerNodes;
+        return lNodes;
     };
 
+    /**
+     * For each layer the corresponding analyses, preceding and succeeding links as well as
+     * specifically in- and output nodes are mapped to it.
+     * @param graph The provenance graph.
+     */
     var createLayerAnalysisMapping = function (graph) {
-        //console.log(graph.layerNodes);
-
 
         /* Layer children are set already. */
-        graph.layerNodes.values().forEach(function (ln) {
+        graph.lNodes.values().forEach(function (ln) {
             ln.children.values().forEach(function (an) {
+
+                /* Set analysis parent. */
+                an.parent = an.layer;
+
+                /* Set input nodes. */
                 an.inputs.values().forEach(function (n) {
-                    /* Set input nodes. */
                     ln.inputs.set(n.autoId, n);
                 });
+                /* Set output nodes. */
                 an.outputs.values().forEach(function (n) {
-                    /* Set output nodes. */
                     ln.outputs.set(n.autoId, n);
                 });
             });
@@ -187,9 +194,11 @@ var provvisMotifs = function () {
             }
             ln.wfName = wfName.toString();
 
+            /* Set layer parent. */
+            ln.parent = graph;
         });
 
-        graph.layerNodes.values().forEach(function (ln) {
+        graph.lNodes.values().forEach(function (ln) {
 
             /* Set predecessor layers. */
             ln.children.values().forEach(function (an) {
@@ -211,7 +220,7 @@ var provvisMotifs = function () {
         });
 
         /* Set layer links. */
-        graph.layerNodes.values().forEach(function (ln) {
+        graph.lNodes.values().forEach(function (ln) {
             ln.children.values().forEach(function (an) {
                 an.links.values().forEach(function (anl) {
                     ln.links.set(anl.autoId, anl);
@@ -219,21 +228,98 @@ var provvisMotifs = function () {
             });
         });
 
-        /* TODO: Set predLinks and succLinks. */
+        /* Set predLinks and succLinks. */
+        graph.lNodes.values().forEach(function (ln) {
+            ln.inputs.values().forEach(function (lin) {
+                lin.predLinks.values().forEach(function (l) {
+                    ln.predLinks.set(l.autoId, l);
+                });
+            });
+            ln.outputs.values().forEach(function (lon) {
+                lon.succLinks.values().forEach(function (l) {
+                    ln.succLinks.set(l.autoId, l);
+                });
+            });
+        });
 
-        /* TODO: Set layerLinks. */
-
+        /* Set layer links. */
+        var linkId = 0;
+        graph.lNodes.values().forEach(function (ln) {
+            ln.succs.values().forEach(function (sl) {
+                var layerLink = new provvisDecl.Link(linkId, ln, sl, false);
+                graph.lLinks.set(layerLink.autoId, layerLink);
+                linkId++;
+            });
+        });
     };
+
+    /**
+     * Dagre layout including layer nodes.
+     * @param graph The provenance graph.
+     * @param cell Node cell dimensions.
+     */
+    var dagreLayerLayout = function (graph, cell) {
+        var g = new dagre.graphlib.Graph();
+
+        g.setGraph({rankdir: "LR", nodesep: 0, edgesep: 0, ranksep: 0, marginx: 0, marginy: 0});
+
+        g.setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+        var curWidth = 0,
+            curHeight = 0;
+
+        graph.lNodes.values().forEach(function (ln) {
+            curWidth = cell.width;
+            curHeight = ln.children.size() * cell.height;
+
+            g.setNode(ln.autoId, {label: ln.autoId, width: curWidth, height: curHeight});
+        });
+
+        graph.lLinks.values().forEach(function (l) {
+            g.setEdge(l.source.autoId, l.target.autoId, {
+                minlen: 1,
+                weight: 1,
+                width: 0,
+                height: 0,
+                labelpos: "r",
+                labeloffset: 0
+            });
+        });
+
+        dagre.layout(g);
+
+        var dlLNodes = d3.entries(g._nodes);
+        graph.lNodes.values().forEach(function (ln) {
+            curWidth = cell.width;
+            curHeight = ln.children.size() * cell.height;
+
+            ln.x = dlLNodes.filter(function (d) {
+                return d.key === ln.autoId.toString();
+            })[0].value.x - curWidth / 2;
+
+            ln.y = dlLNodes.filter(function (d) {
+                return d.key === ln.autoId.toString();
+            })[0].value.y - curHeight / 2;
+
+            ln.children.values().forEach(function (an, i) {
+                an.x = 0;
+                an.y = i * cell.height;
+            });
+        });
+    };
+
 
     /**
      * Main motif discovery and injection module function.
      * @param graph The main graph object of the provenance visualization.
-     * @param bclgNodes Barycentric layered and grouped nodes.
+     * @param cell Node cell dimensions.
      */
-    var runMotifsPrivate = function (graph) {
-        graph.layerNodes = createLayerNodes(graph);
+    var runMotifsPrivate = function (graph, cell) {
+        graph.lNodes = createLayerNodes(graph);
         createLayerAnalysisMapping(graph);
-
+        dagreLayerLayout(graph, cell);
 
     };
 
@@ -241,8 +327,8 @@ var provvisMotifs = function () {
      * Publish module function.
      */
     return {
-        run: function (graph) {
-            return runMotifsPrivate(graph);
+        run: function (graph, cell) {
+            return runMotifsPrivate(graph, cell);
         }
     };
 }();

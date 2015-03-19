@@ -21,6 +21,7 @@ var provvisRender = function () {
         layer = Object.create(null),
 
         hLink = Object.create(null),
+        lLink = Object.create(null),
 
         saBBox = Object.create(null),
         aBBox = Object.create(null);
@@ -704,28 +705,142 @@ var provvisRender = function () {
 
     /**
      * Draw layered nodes.
-     * @param lNodes
+     * @param lNodes Layer nodes.
      */
-    var drawLayerNodes = function (lNodes) {
-        layer = vis.canvas.append("g").classed("layers", true).selectAll(".layer")
-            .data(lNodes.values())
-            .enter().append("g")
-            .classed("layer", true)
+    var updateLayerNodes = function (lNodes) {
+
+        /* Data join. */
+        var ln = vis.canvas.select("g.layers").selectAll(".layer")
+            .data(lNodes.values());
+
+        /* TODO: Node glyph. */
+
+        /* Enter. */
+        ln.enter().append("g")
+            .classed({"layer": true})
             .attr("id", function (d) {
                 return "gNodeId-" + d.autoId;
+            }).classed("blendedNode", function () {
+                return filterAction === "blend" ? true : false;
+            }).classed("filteredNode", function (l) {
+                return l.filtered;
+            }).classed("hiddenNode", function (l) {
+                return !l.hidden;
+            }).attr("transform", function (d) {
+                return "translate(" + d.x + "," + d.y + ")";
             });
 
+        var gradient = ln.append("defs")
+            .append("linearGradient")
+            .attr("id", "layerGradient")
+            .attr("x1", "0%")
+            .attr("y1", "100%")
+            .attr("x2", "0%")
+            .attr("y2", "0%");
 
-        /* TODO: */
+        gradient.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#fff")
+            .attr("stop-opacity", 1);
 
+        gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#000")
+            .attr("stop-opacity", 1);
+
+        /* Enter and update. */
+        var gradBox = ln.attr("id", function (d) {
+            return "gNodeId-" + d.autoId;
+        }).classed("blendedNode", function () {
+            return filterAction === "blend" ? true : false;
+        }).classed("filteredNode", function (l) {
+            return l.filtered;
+        }).classed("hiddenNode", function (l) {
+            return !l.hidden;
+        }).attr("transform", function (d) {
+            return "translate(" + d.x + "," + d.y + ")";
+        });
+
+        gradBox.append("g").classed({"gradBox": true})
+            .attr("transform", function () {
+                return "translate(" + (-cell.width / 2 + 1) + "," + (-cell.height / 2 + 1) + ")";
+            }).append("rect")
+            .attr("rx", cell.width / 5)
+            .attr("ry", cell.height / 5)
+            .attr("width", vis.cell.width - 2)
+            .attr("height", vis.cell.height - 2)
+            .style({"fill": "url(#layerGradient)"});
+
+        /* Exit. */
+        ln.exit().remove();
+
+        /* Set dom elements. */
+        layer = vis.canvas.select("g.layers").selectAll(".layer");
+    };
+
+    /**
+     * Draw layered nodes.
+     * @param lLinks Layer links.
+     */
+    var updateLayerLinks = function (lLinks) {
+
+        /* Data join. */
+        var ln = vis.canvas.select("g.lLinks").selectAll(".link")
+            .data(lLinks.values());
+
+        /* TODO: Node glyph. */
+
+        /* Enter. */
+        ln.enter().append("path")
+            .classed({"link": true, "lLink": true})
+            .attr("id", function (d) {
+                return "linkId-" + d.autoId;
+            }).classed("blendedLink", function (l) {
+                return !l.filtered && filterAction === "blend" ? true : false;
+            }).classed("filteredLink", function (l) {
+                return l.filtered;
+            }).classed("hiddenLink", function (l) {
+                return !l.highlighted;
+            }).attr("id", function (l) {
+                return "linkId-" + l.autoId;
+            });
+
+        /* Enter and update. */
+        ln.attr("d", function (l) {
+            var srcCoords = getVisibleNodeCoords(l.source),
+                tarCoords = getVisibleNodeCoords(l.target);
+
+            if ($("#prov-ctrl-links-list-bezier").find("input").prop("checked")) {
+                return drawBezierLink(l, srcCoords.x, srcCoords.y, tarCoords.x, tarCoords.y);
+            } else {
+                return drawStraightLink(l, srcCoords.x, srcCoords.y, tarCoords.x, tarCoords.y);
+            }
+        }).classed({"lLink": true})
+            .attr("id", function (d) {
+                return "linkId-" + d.autoId;
+            }).classed("blendedLink", function (l) {
+                return !l.filtered && filterAction === "blend" ? true : false;
+            }).classed("filteredLink", function (l) {
+                return l.filtered;
+            }).classed("hiddenLink", function (l) {
+                return !l.highlighted;
+            }).attr("id", function (l) {
+                return "linkId-" + l.autoId;
+            });
+
+        /* Exit. */
+        ln.exit().remove();
+
+        /* Set dom elements. */
+        lLink = vis.canvas.select("g.lLinks").selectAll(".link");
     };
 
     /**
      * Draw analysis nodes.
-     * @param aNodes Analysis nodes.
      */
-    var drawAnalysisNodes = function (aNodes) {
+    var drawAnalysisNodes = function () {
         layer.each(function (ln) {
+            console.log(ln);
             d3.select("#gNodeId-" + ln.autoId).selectAll(".analysis")
                 .data(ln.children.values())
                 .enter().append("g")
@@ -1206,10 +1321,67 @@ var provvisRender = function () {
         };
     };
 
+    /**
+     * Dagre layout including layer nodes.
+     * @param graph The provenance graph.
+     */
+    var dagreLayerLayout = function (graph) {
+        var g = new dagre.graphlib.Graph();
+
+        g.setGraph({rankdir: "LR", nodesep: 0, edgesep: 0, ranksep: 0, marginx: 0, marginy: 0});
+
+        g.setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+        var curWidth = 0,
+            curHeight = 0;
+
+        graph.lNodes.values().forEach(function (ln) {
+            curWidth = vis.cell.width;
+            curHeight = vis.cell.height;
+            //curHeight = ln.children.size() * vis.cell.height;
+
+            g.setNode(ln.autoId, {label: ln.autoId, width: curWidth, height: curHeight});
+        });
+
+        graph.lLinks.values().forEach(function (l) {
+            g.setEdge(l.source.autoId, l.target.autoId, {
+                minlen: 1,
+                weight: 1,
+                width: 0,
+                height: 0,
+                labelpos: "r",
+                labeloffset: 0
+            });
+        });
+
+        dagre.layout(g);
+
+        var dlLNodes = d3.entries(g._nodes);
+        graph.lNodes.values().forEach(function (ln) {
+            curWidth = vis.cell.width;
+            curHeight = vis.cell.height;
+            //curHeight = ln.children.size() * vis.cell.height;
+
+            ln.x = dlLNodes.filter(function (d) {
+                return d.key === ln.autoId.toString();
+            })[0].value.x - curWidth / 2;
+
+            ln.y = dlLNodes.filter(function (d) {
+                return d.key === ln.autoId.toString();
+            })[0].value.y - curHeight / 2;
+
+            ln.children.values().forEach(function (an) {
+                an.x = 0;
+                an.y = 0;
+            });
+        });
+    };
 
     /**
      * Dagre layout for analysis.
-     * @param san Graph.
+     * @param graph The provenance Graph.
      */
     var dagreDynamicLayout = function (graph) {
 
@@ -2446,8 +2618,8 @@ var provvisRender = function () {
         });
 
         /* Handle tooltips. */
-        handleTooltips();
-        //handleDebugTooltips();
+        //handleTooltips();
+        handleDebugTooltips();
 
         /* Collapse on bounding box click.*/
         saBBox.on("click", function (d) {
@@ -2610,10 +2782,15 @@ var provvisRender = function () {
         vis.canvas.append("g").classed({"aLinks": true});
         updateAnalysisLinks(vis.graph);
 
-        drawLayerNodes(vis.graph.layerNodes);
+
+        vis.canvas.append("g").classed({"layers": true});
+        updateLayerNodes(vis.graph.lNodes);
+
+        vis.canvas.append("g").classed({"lLinks": true});
+        updateLayerLinks(vis.graph.lLinks);
 
         /* Draw analysis nodes. */
-        drawAnalysisNodes(vis.graph.aNodes);
+        drawAnalysisNodes();
 
         /* Draw subanalysis nodes. */
         drawSubanalysisNodes();
@@ -2641,7 +2818,38 @@ var provvisRender = function () {
         /* Set initial graph position. */
         fitGraphToWindow(0);
 
+
         /* TODO: Experimental layer highlighting. */
+
+
+        aLink.each(function (al) {
+            al.hidden = true;
+            al.filtered = false;
+        });
+        /*aNode.each( function (an) {
+         an.hidden = true;
+         });*/
+
+        dagreLayerLayout(vis.graph);
+        updateLayerLinks(vis.graph.lLinks);
+        updateLayerNodes(vis.graph.lNodes);
+
+
+        d3.selectAll(".aLink").classed("hiddenLink", true);
+        //d3.selectAll(".analysis").classed("hiddenNode", true);
+
+        aNode.each(function (an) {
+            console.log(an);
+            dragAnalysisNode(an, d3.select("#gNodeId-" + an.autoId));
+        });
+
+        d3.selectAll(".lLink").classed("hiddenLink", false);
+        d3.selectAll(".lLink").classed("blendedLink", false);
+        d3.selectAll(".layer").classed("hiddenNode", false);
+        d3.selectAll(".layer").classed("blendedNode", false);
+
+        console.log(vis.graph);
+
         var layerColorScale = d3.scale.category20();
         layer.each(function (ln) {
             ln.children.values().forEach(function (an) {
@@ -2711,6 +2919,7 @@ var provvisRender = function () {
         });
     };
 
+    /* TODO: */
     /**
      * Update filtered links.
      */

@@ -113,7 +113,7 @@
     display: none;
 }
 
-.node, .aNode, .saNode {
+.node, .aNode, .saNode, .lNode {
     stroke-width: 1.5px;
     stroke: #000000;
 }
@@ -125,7 +125,7 @@
     fill: none;
 }
 
-.aLink {
+.aLink, .lLink {
     stroke: gray;
     stroke-width: 1.5px;
     stroke-opacity: 1.0;
