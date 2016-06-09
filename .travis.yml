@@ -1,0 +1,32 @@
+language: python
+python:
+  - 2.7
+services:
+  - postgresql
+  - neo4j
+install:
+  - pip install -r requirements.txt
+env:
+  - DJANGO_SETTINGS_MODULE=config.settings.dev
+before_script:
+  - createuser --createdb --no-superuser --no-createrole vagrant
+  - createdb -O vagrant refinery
+  - cd refinery
+# See http://www.stuartellis.eu/articles/erb/#running-erb-from-the-command-line
+  - erb config/config.json.erb > config/config.json
+  - python manage.py syncdb --noinput
+  - python manage.py migrate registration
+  - python manage.py migrate core
+  - python manage.py syncdb --migrate --noinput
+  - npm install --quiet -g grunt-cli@0.1.13 bower@1.7.7
+  - cd ui && npm install && bower install && cd ../
+script:
+  - flake8 --exclude=migrations,ui ..
+  - coverage run manage.py test
+  - cd ui && grunt && cd ../
+after_success:
+  - codecov
+  - npm run codecov
+notifications:
+  slack:
+    secure: nDs9Oj08nRizuD0edl6WcrSgaTPMyITQjZc4qPZpt+yOxUehWbrAmVhqYypfyvdj4qSi1E72rPTXftuBB1E1IZBgX4CCkrCkWGLgIxHaaValTd64oOX66eC3BbSehQxuJB7w1DWw54xBUkTy6+ufjAqiwhLpoEUeE296urAWYHU=

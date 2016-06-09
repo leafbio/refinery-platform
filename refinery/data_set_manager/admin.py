@@ -4,32 +4,59 @@ Created on May 11, 2012
 @author: nils
 '''
 
-from data_set_manager.models import *
 from django.contrib import admin
 from django_extensions.admin import ForeignKeyAutocompleteAdmin
 
+from data_set_manager import models
+
+
 class NodeAdmin(ForeignKeyAutocompleteAdmin):
-    raw_id_fields = ("parents","children")    
+    raw_id_fields = ("parents", "children")
+    list_display = ["__unicode__", "file_uuid", "study", "assay",
+                    "analysis_uuid", "name",
+                    "subanalysis", "workflow_output", "genome_build",
+                    "species"]
+
 
 class AnnotatedNodeAdmin(ForeignKeyAutocompleteAdmin):
-    raw_id_fields = ("node","attribute","study","assay")    
+    raw_id_fields = ("node", "attribute", "study", "assay")
+    list_display = ["__unicode__", "id", "attribute", "study", "assay",
+                    "node_uuid", "node_file_uuid", "node_type", "node_name",
+                    "attribute_type", "attribute_subtype",
+                    "attribute_value", "attribute_value_unit",
+                    "node_species", "node_genome_build",
+                    "node_analysis_uuid", "node_subanalysis",
+                    "node_workflow_output", "is_annotation"]
 
-admin.site.register(NodeCollection)
-admin.site.register(Investigation)
-admin.site.register(Study)
-admin.site.register(Publication)
-admin.site.register(Contact)
-admin.site.register(Ontology)
-admin.site.register(Design)
-admin.site.register(Factor)
-admin.site.register(Assay)
-admin.site.register(Protocol)
-admin.site.register(ProtocolReference)
-admin.site.register(ProtocolReferenceParameter)
-admin.site.register(Node,NodeAdmin)
-admin.site.register(Attribute)
-admin.site.register(AttributeOrder)
-admin.site.register(AttributeDefinition)
-admin.site.register(AnnotatedNode,AnnotatedNodeAdmin)
-admin.site.register(AnnotatedNodeRegistry)
 
+class NodeCollectionAdmin(ForeignKeyAutocompleteAdmin):
+    list_display = ["__unicode__", "title", "uuid", "identifier",
+                    "description", "release_date", "submission_date"]
+
+
+class InvestigationAdmin(ForeignKeyAutocompleteAdmin):
+    list_display = ["__unicode__", "uuid"]
+
+
+class StudyAdmin(ForeignKeyAutocompleteAdmin):
+    list_display = ["__unicode__", "uuid"]
+
+
+admin.site.register(models.NodeCollection, NodeCollectionAdmin)
+admin.site.register(models.Investigation, InvestigationAdmin)
+admin.site.register(models.Study, StudyAdmin)
+admin.site.register(models.Publication)
+admin.site.register(models.Contact)
+admin.site.register(models.Ontology)
+admin.site.register(models.Design)
+admin.site.register(models.Factor)
+admin.site.register(models.Assay)
+admin.site.register(models.Protocol)
+admin.site.register(models.ProtocolReference)
+admin.site.register(models.ProtocolReferenceParameter)
+admin.site.register(models.Node, NodeAdmin)
+admin.site.register(models.Attribute)
+admin.site.register(models.AttributeOrder)
+admin.site.register(models.AttributeDefinition)
+admin.site.register(models.AnnotatedNode, AnnotatedNodeAdmin)
+admin.site.register(models.AnnotatedNodeRegistry)
