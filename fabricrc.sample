@@ -1,4 +1,17 @@
-# Fabric’s local settings file (copy to ~/.fabricrc)
+# Copy this file to ~/.fabricrc and customize to match your environment
+# Note: these settings are not used if deploying locally with Vagrant
 
-# username of the Refinery application user for Vagrant VM
-project_user=vagrant
+# some defaults for deploying to AWS
+project_user=ubuntu
+refinery_project_dir=/srv/refinery-platform
+refinery_virtualenv_name=refinery-platform
+
+# deployment hosts
+dev_host=refinery-dev.example.org
+test_host=refinery-test.example.org
+prod_host=refinery-prod.example.org
+
+# codebase branches to be used for deployment to corresponding hosts
+dev_branch=develop
+test_branch=release-X.Y.Z
+prod_branch=master

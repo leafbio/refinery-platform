@@ -1,31 +1,46 @@
-from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.forms import Form
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
+import logging
 
-from resumable.fields import ResumableFileField
-from resumable.views import ResumableUploadView
+from django.http import Http404
 
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-class ResumableForm(Form):
-    file = ResumableFileField(
-#         allowed_mimes=("audio/ogg",),
-        upload_url=lambda: reverse('upload'),
-        chunks_dir=getattr(settings, 'FILE_UPLOAD_TEMP_DIR')
-    )
+from .models import FileStoreItem
+from .serializers import FileStoreItemSerializer
+
+logger = logging.getLogger(__name__)
 
 
-class MyResumableUploadView(ResumableUploadView):
-    def get(self, *args, **kwargs):
-        if self.request.is_ajax():
-            return ResumableUploadView.get(self, *args, **kwargs)
-        form = ResumableForm()
-        return render(self.request, 'file_store/upload.html', {'form': form})
-#     @property
-#     def chunks_dir(self):
-#         return self.request.user.profile.chunks_dir
+class FileStoreItems(APIView):
+    """
+    API endpoint that allows FileStoreItems to be viewed
+    Returns filestore object
 
-    @csrf_exempt
-    def dispatch(self, *args, **kwargs):
-        return super(MyResumableUploadView, self).dispatch(*args, **kwargs)
+    ---
+    #YAML
+
+    GET:
+        serializer: FileStoreItemSerializer
+        omit_serializer: false
+
+        parameters:
+            - name: uuid
+              description: FileStore uuid
+              type: string
+              paramType: path
+              required: true
+    ...
+    """
+
+    def get_object(self, uuid):
+        try:
+            return FileStoreItem.objects.get(uuid=uuid)
+        except (FileStoreItem.DoesNotExist,
+                FileStoreItem.MultipleObjectsReturned) as e:
+            logger.error(e)
+            raise Http404
+
+    def get(self, request, uuid, format=None):
+        file_store_item = self.get_object(uuid)
+        serializer = FileStoreItemSerializer(file_store_item)
+        return Response(serializer.data)

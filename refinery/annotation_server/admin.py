@@ -5,7 +5,8 @@ Created on March 15, 2013
 '''
 
 from django.contrib import admin
-from annotation_server.models import *
+
+from .models import GenomeBuild, Taxon
 
 admin.site.register(Taxon)
 admin.site.register(GenomeBuild)

@@ -1,0 +1,129 @@
+<div id="dataUploadTutorialStep7" class="tab-pane" id="data">
+  <div class="refinery-subheader m-t-1">
+    <h1>Optional: Upload Data Files</h1>
+  </div>
+  <form id="fileupload" method="POST" enctype="multipart/form-data"
+        ng-controller="RefineryFileUploadCtrl as FileCtrl"
+        data-file-upload="FileCtrl.options"
+        ng-class="{'fileupload-processing': processing()}">
+
+    <!-- Redirect browsers with JavaScript disabled to the origin page -->
+    <noscript>
+      <input type="hidden" name="redirect" value="/">
+    </noscript>
+
+    <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
+    <div class="row fileupload-buttonbar v-centered-row">
+      <div class="col-lg-4">
+        <!-- The fileinput-button span is used to style the file input field as button -->
+        <span
+          class="refinery-base btn btn-default btn-sm fileinput-button"
+          ng-class="{ 'disabled': disabled }">
+          <i class="fa fa-plus"></i>
+          <span>Add files &hellip;</span>
+          <input
+            type="file"
+            class="refinery-base"
+            name="files[]"
+            multiple
+            ng-disabled="disabled">
+        </span>
+        <button
+          class="active-group refinery-base btn btn-default btn-sm start"
+          ng-click="submit()"
+          ng-disabled="FileCtrl.numUnfinishedUploads() === 0 ||
+                       processing() ||
+                      FileCtrl.overallFileStatus != 'queuing'">
+          <i class="fa fa-upload"></i>
+          <span>Start upload</span>
+        </button>
+        <button
+          class="refinery-base btn btn-default btn-sm cancel"
+          ng-click="cancel()"
+          ng-disabled="FileCtrl.numUnfinishedUploads() === 0">
+          <i class="fa fa-ban"></i>
+          <span>Cancel upload</span>
+        </button>
+      </div>
+
+      <!-- Removed global progress state, issue #1300 -->
+    </div>
+    <!-- The table listing the files available for upload/download -->
+    <div class="container-fluid">
+      <div
+        class="row bordered-row v-centered-row"
+        ng-repeat="file in queue"
+        ng-class="{
+          'processing': file.$processing(),
+          'bg-danger': file.error
+        }">
+        <div class="col-xs-4">
+          <div class="v-center">
+            <p class="name">
+              <strong>{{ file.name }}</strong>
+              ({{ file.size | formatFileSize }})
+            </p>
+          </div>
+        </div>
+        <div class="col-xs-4">
+          <div class="v-center">
+            <div
+              class="progress progress-striped active"
+              ng-class="{ 'progress-striped active': !file.uploaded && !file.error }"
+              file-upload-progress="file.$progress()">
+              <div
+                class="progress-bar"
+                role="progressbar"
+                ng-class="{ 'progress-bar-success': file.uploaded, 'progress-bar-danger': file.error }"
+                ng-style="{ width: num + '%' }">
+                <span ng-show="num > 0" ng-if="!file.error">{{ num + '%' }}</span>
+                <i class="fa fa-exclamation-triangle" ng-if="file.error"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xs-4">
+          <div ng-if="!file.uploaded && !file.error">
+            <button
+              class="active-group refinery-base btn btn-default btn-sm start"
+              ng-click="file.$submit()"
+              ng-hide="!file.$submit || FileCtrl.options.autoUpload"
+              ng-disabled="file.$state() == 'pending' ||
+                 file.$state() == 'rejected' ||
+                 FileCtrl.fileCache[file.name].status != 'queued'">
+              <i class="fa fa-upload"></i>
+              <span>Start</span>
+            </button>
+            <button
+              class="refinery-base btn btn-default btn-sm cancel"
+              ng-click="file.$cancel()"
+              ng-hide="!file.$cancel"
+              ng-disabled="FileCtrl.fileCache[file.name].status == 'waitingOnMD5'">
+              <i class="fa fa-ban"></i>
+              <span>Cancel</span>
+            </button>
+            <button
+              class="btn btn-danger btn-sm destroy"
+              ng-controller="RefineryFileDestroyCtrl"
+              ng-click="file.$destroy()"
+              ng-hide="!file.$destroy">
+              <i class="fa fa-trash"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+          <div class="v-center" ng-if="file.uploaded">
+            <i class="fa fa-check-circle success"></i>
+            <strong>Uploaded</strong>
+          </div>
+          <div class="v-center" ng-if="file.error">
+            <strong
+              class="error text-danger"
+              ng-if="file.error"
+              ng-bind="file.error">
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

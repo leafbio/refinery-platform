@@ -1,63 +1,66 @@
+
+import logging
 import os
 import stat
-import logging
-import urllib2
-from urlparse import urlparse
 from tempfile import NamedTemporaryFile
-from celery.task import task
+from urlparse import urlparse
+
 from django.core.files import File
-from file_store.models import FileStoreItem, get_temp_dir, file_path,\
-    FILE_STORE_BASE_DIR
+
+import celery
+from celery.signals import task_success
+from celery.task import task
+import requests
+from requests.exceptions import (ContentDecodingError, ConnectionError,
+                                 HTTPError)
+
+from .models import (file_path, FILE_STORE_BASE_DIR, FileStoreItem,
+                     get_temp_dir)
+from data_set_manager.models import Node
 
 
-logger = logging.getLogger('file_store')
+logger = logging.getLogger(__name__)
 
 
 @task()
-def create(source, sharename='', filetype='', permanent=False, file_size=1):
+def create(source, sharename='', filetype='', file_size=1):
     """Create a FileStoreItem instance and return its UUID
     Important: source must be either an absolute file system path or a URL
-
     :param source: URL or absolute file system path to a file.
     :type source: str.
     :param sharename: Group share name.
     :type sharename: str.
-    :param filetype: File type (must be one of the types declared in models.py).
+    :param filetype: File extension
     :type filetype: str.
-    :param permanent: Flag indicating whether to add this instance to the cache or not.
-    :type permanent: bool.
-    :param file_size: For cases when the remote site specified by source URL doesn't provide file size in the HTTP headers.
+    :param file_size: For cases when the remote site specified by source URL
+        doesn't provide file size in the HTTP headers.
     :type file_size: int.
     :returns: FileStoreItem UUID if success, None if failure.
 
     """
-    #TODO: move to file_store/models.py since it's never used as a task
+    # TODO: move to file_store/models.py since it's never used as a task
     logger.info("Creating FileStoreItem using source '%s'", source)
 
     item = FileStoreItem.objects.create_item(
         source=source, sharename=sharename, filetype=filetype)
     if not item:
-        logger.error("Failed to create FileStoreItem using source '%s'", source)
+        logger.error("Failed to create FileStoreItem using source '%s'",
+                     source)
         return None
 
     logger.info("FileStoreItem created with UUID %s", item.uuid)
-
-    #TODO: don't add to cache if permanent
 
     return item.uuid
 
 
 @task(track_started=True)
-def import_file(uuid, permanent=False, refresh=False, file_size=1):
+def import_file(uuid, refresh=False, file_size=0):
     """Download or copy file specified by UUID.
-
-    :param permanent: Flag for adding the FileStoreItem to cache.
-    :type permanent: bool.
     :param refresh: Flag for forcing update of the file.
     :type refresh: bool.
     :param file_size: size of the remote file.
     :type file_size: int.
-    :returns: FileStoreItem -- model instance or None if importing failed.
+    :returns: FileStoreItem UUID or None if importing failed.
 
     """
     logger.debug("Importing FileStoreItem with UUID '%s'", uuid)
@@ -77,7 +80,8 @@ def import_file(uuid, permanent=False, refresh=False, file_size=1):
         if refresh:
             item.delete_datafile()
         else:
-            return item
+            logger.info("File already exists: '%s'", item.get_absolute_path())
+            return item.uuid
 
     # if source is an absolute file system path then copy,
     # otherwise assume it is a URL and download
@@ -91,7 +95,7 @@ def import_file(uuid, permanent=False, refresh=False, file_size=1):
                 return None
             srcfilename = os.path.basename(item.source)
 
-            #TODO: copy file in chunks to display progress report
+            # TODO: copy file in chunks to display progress report
             # model is saved by default if FileField.save() is called
             item.datafile.save(srcfilename, srcfile)
             srcfile.close()
@@ -100,56 +104,101 @@ def import_file(uuid, permanent=False, refresh=False, file_size=1):
             logger.error("Copying failed: source is not a file")
             return None
     else:
-        req = urllib2.Request(item.source)
         # check if source file can be downloaded
         try:
-            response = urllib2.urlopen(req)
-        except urllib2.HTTPError as e:
-            logger.error("Could not open URL '%s'", item.source)
-            return None
-        except urllib2.URLError as e:
+            response = requests.get(item.source, stream=True)
+            response.raise_for_status()
+        except HTTPError as e:
             logger.error("Could not open URL '%s'. Reason: '%s'",
-                         item.source, e.reason)
-            return None
-        except ValueError as e:
-            logger.error("Could not open URL '%s'. Reason: '%s'",
-                         item.source, e.message)
-            return None
+                         item.source, e)
 
-        tmpfile = NamedTemporaryFile(dir=get_temp_dir(), delete=False)
-
-        # provide a default value in case Content-Length is missing
-        remotefilesize = int(response.info().getheader("Content-Length", file_size))
-
-        logger.debug("Starting download from '%s'", item.source)
-        # download and save the file
-        localfilesize = 0
-        blocksize = 8 * 2 ** 10    # 8 Kbytes
-        for buf in iter(lambda: response.read(blocksize), ''):
-            localfilesize += len(buf)
-            tmpfile.write(buf)
-            # check if we have a sane value for file size
-            if remotefilesize > 0:
-                percent_done = localfilesize * 100. / remotefilesize
-            else:
-                percent_done = 0
             import_file.update_state(
-                state="PROGRESS",
-                meta={"percent_done": "%3.2f%%" % percent_done,
-                      'current': localfilesize, 'total': remotefilesize}
+                state=celery.states.FAILURE,
+                meta='Analysis Failed during import_file subtask'
+            )
+
+            # ignore the task so no other state is recorded
+            # See: http://stackoverflow.com/a/33143545
+            raise celery.exceptions.Ignore()
+
+        # FIXME: When importing a tabular file into Refinery, there is a
+        # dependance on this ConnectionError below returning `None`!!!!
+        except(ConnectionError, ValueError) as e:
+            logger.error("Could not open URL '%s'. Reason: '%s'",
+                         item.source, e)
+            return None
+
+        with NamedTemporaryFile(dir=get_temp_dir(), delete=False) as tmpfile:
+
+            # provide a default value in case Content-Length is missing
+            remote_file_size = int(
+                response.headers.get('Content-Length', file_size)
+            )
+            logger.debug("Downloading from '%s'", item.source)
+            # download and save the file
+            import_failure = False
+            local_file_size = 0
+            block_size = 10 * 1024 * 1024  # 10MB
+
+            try:
+                for buf in response.iter_content(block_size):
+                    local_file_size += len(buf)
+
+                    try:
+                        tmpfile.write(buf)
+                    except IOError as exc:
+                        # e.g., [Errno 28] No space left on device
+                        logger.error("Error downloading from '%s': %s",
+                                     item.source, exc)
+                        import_failure = True
+                        break
+
+                    # check if we have a sane value for file size
+                    if remote_file_size > 0:
+                        percent_done = local_file_size * 100. / \
+                                       remote_file_size
+                    else:
+                        percent_done = 0
+
+                    import_file.update_state(
+                        state="PROGRESS",
+                        meta={
+                            "percent_done": "{:.0f}".format(percent_done),
+                            "current": local_file_size,
+                            "total": remote_file_size
+                        })
+
+            except ContentDecodingError as e:
+                logger.error("Error while decoding response content:%s" % e)
+                import_failure = True
+
+            if import_failure:
+                # delete temp. file if download failed
+                logger.error("File import task has failed. Deleting "
+                             "temporary file...")
+
+                # Setting the tempfile's delete == True deletes the file
+                # upon a `close()`
+                tmpfile.delete = True
+
+                import_file.update_state(
+                    state=celery.states.FAILURE,
+                    meta='Analysis Failed during import_file subtask'
                 )
-        # cleanup
-        #TODO: delete temp file if download failed 
-        tmpfile.flush()
-        tmpfile.close()
-        response.close()
+
+                # ignore the task so no other state is recorded
+                # See: http://stackoverflow.com/a/33143545
+                raise celery.exceptions.Ignore()
+
         logger.debug("Finished downloading from '%s'", item.source)
 
         # get the file name from URL (remove query string)
         u = urlparse(item.source)
         src_file_name = os.path.basename(u.path)
         # construct destination path based on source file name
-        rel_dst_path = item.datafile.storage.get_available_name(file_path(item, src_file_name))
+        rel_dst_path = item.datafile.storage.get_available_name(
+            file_path(item, src_file_name)
+        )
         abs_dst_path = os.path.join(FILE_STORE_BASE_DIR, rel_dst_path)
         # move the temp file into the file store
         try:
@@ -157,8 +206,10 @@ def import_file(uuid, permanent=False, refresh=False, file_size=1):
                 os.makedirs(os.path.dirname(abs_dst_path))
             os.rename(tmpfile.name, abs_dst_path)
         except OSError as e:
-            logger.error("Error moving temp file into the file store. OSError: %s, file name: %s, error: %s",
-                         e.errno, e.filename, e.strerror)
+            logger.error(
+                "Error moving temp file into the file store. "
+                "OSError: %s, file name: %s, error: %s",
+                e.errno, e.filename, e.strerror)
             return False
         # temp file is only accessible by the owner by default which prevents
         # access by the web server if it is running as it's own user
@@ -176,83 +227,47 @@ def import_file(uuid, permanent=False, refresh=False, file_size=1):
         # save the model instance
         item.save()
 
-    #TODO: if permanent is False then add to cache
-
-    return item
+    return item.uuid
 
 
-@task()
-def read(uuid):
-    '''Return a FileStoreItem model instance given a UUID.
+@task_success.connect(sender=import_file)
+def begin_auxiliary_node_generation(**kwargs):
+    # NOTE: Celery docs suggest to access these fields through kwargs as the
+    # structure of celery signal handlers changes often
+    # See: http://bit.ly/2cbTy3k
 
-    :param uuid: UUID of a FileStoreItem.
-    :type uuid: str.
-    :returns: FileStoreItem -- Model instance if reading the file succeeded,
-    None if failed. 
-    
-    '''
-    return FileStoreItem.objects.get_item(uuid)
+    file_store_item_uuid = kwargs['result']
 
-
-@task()
-def delete(uuid):
-    '''Delete FileStoreItem given a UUID.
-
-    :param uuid: UUID of a FileStoreItem.
-    :type uuid: str.
-    :returns: bool - True if deletion succeeded, False if failed.
-
-    '''
-    logger.debug("Deleting FileStoreItem with UUID '%s'", uuid)
-
-    item = FileStoreItem.objects.get_item(uuid)
-    if item:
-        item.delete()
-        logger.info("FileStoreItem deleted")
-        return True
-    else:
-        logger.error("Could not delete FileStoreItem with UUID '%s'", uuid)
-        return False
-
-
-@task()
-def update(uuid, source):
-    '''Replace the file using the new source while keeping the same UUID.
-
-    :param uuid: UUID of a FileStoreItem.
-    :type uuid: str.
-    :param source: New source of the FileStoreItem.
-    :type source: str.
-    :returns: FileStoreItem -- model instance if update succeeded, None if failed. 
-
-    '''
-    #TODO: check for number of affected rows to determine if there was an error
-    # https://docs.djangoproject.com/en/dev/ref/models/querysets/#django.db.models.query.QuerySet.update
-    FileStoreItem.objects.filter(uuid=uuid).update(source=source)
-
-    # import new file from updated source
-    #TODO: call import_file as subtask?
-    return import_file(uuid, refresh=True)
+    try:
+        Node.objects.get(
+            file_uuid=file_store_item_uuid
+        ).run_generate_auxiliary_node_task()
+    except (Node.DoesNotExist,
+            Node.MultipleObjectsReturned) \
+            as e:
+        logger.error("Couldn't properly fetch Node: %s", e)
 
 
 @task()
 def rename(uuid, name):
-    """Change name of the file on disk and return the updated FileStoreItem instance.
+    """Change name of the file on disk and return the updated FileStoreItem
+    UUID.
 
     :param uuid: UUID of a FileStoreItem.
     :type uuid: str.
     :param name: New name of the FileStoreItem specified by the UUID.
     :type name: str.
-    :returns: FileStoreItem - updated FileStoreItem instance or None if there was an error.
-
+    :returns: FileStoreItem UUID or None if there
+        was an error.
     """
+
     try:
         item = FileStoreItem.objects.get_item(uuid=uuid)
     except FileStoreItem.DoesNotExist:
         logger.error("Failed to rename FileStoreItem with UUID '%s'", uuid)
         return None
     if item.rename_datafile(name):
-        return item
+        return item.uuid
     else:
         return None
 
@@ -268,32 +283,34 @@ def download_file(url, target_path, file_size=1):
     :type target_path: str
     :param file_size: Size of the remote file.
     :type file_size: int.
-    :returns: bool -- True if success, False if failure.
-
     '''
-    #TODO: handle out of disk space condition
+    # TODO: handle out of disk space condition
     logger.debug("Downloading file from '%s'", url)
 
-    req = urllib2.Request(url)
     # check if source file can be downloaded
-    #TODO: refactor to use requests
+    # TODO: refactor to use requests
     try:
-        response = urllib2.urlopen(req)
-    except urllib2.URLError as e:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+    except HTTPError as e:
+        logger.error(e)
+    except requests.exceptions.ConnectionError as e:
         raise DownloadError(
             "Could not open URL '{}'. Reason: '{}'".format(url, e.reason))
     except ValueError as e:
         raise DownloadError("Could not open URL '{}'".format(url))
 
-    # get remote file size, provide a default value in case Content-Length is missing
-    remotefilesize = int(response.info().getheader("Content-Length", file_size))
+    # get remote file size, provide a default value in case Content-Length is
+    # missing
+    remotefilesize = int(
+        response.headers.get("Content-Length", file_size))
 
-    #TODO: handle IOError
+    # TODO: handle IOError
     with open(target_path, 'wb+') as destination:
         # download and save the file
         localfilesize = 0
         blocksize = 8 * 2 ** 10    # 8 Kbytes
-        for buf in iter(lambda: response.read(blocksize), ''):
+        for buf in iter(lambda: response.raw.read(blocksize), ''):
             localfilesize += len(buf)
             destination.write(buf)
             # check if we have a sane value for file size
@@ -308,7 +325,7 @@ def download_file(url, target_path, file_size=1):
                           'total': remotefilesize}
                     )
         # cleanup
-        #TODO: delete temp file if download failed 
+        # TODO: delete temp file if download failed
         destination.flush()
 
     response.close()
@@ -321,6 +338,6 @@ class DownloadError(StandardError):
     '''
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
-#        return StandardError.__str__(self, *args, **kwargs)
         return repr(self.value)

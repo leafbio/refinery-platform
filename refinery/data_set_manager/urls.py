@@ -4,33 +4,56 @@ Created on May 11, 2012
 @author: nils
 '''
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from data_set_manager.views import ImportISATabView, ProcessISATabView,\
-    ProcessMetadataTableView, CheckDataFilesView
+from rest_framework.routers import DefaultRouter
+
+from .views import (Assays, AssaysAttributes, AssaysFiles, CheckDataFilesView,
+                    ChunkedFileUploadCompleteView,
+                    ChunkedFileUploadView, DataSetImportView, ImportISATabView,
+                    ProcessISATabView, ProcessMetadataTableView,
+                    TakeOwnershipOfPublicDatasetView)
 
 
-urlpatterns = patterns('data_set_manager.views',
-    url(r'^$', 'index', name="data_set_manager_base" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/types/$', "node_types", name="data_set_manager_node_types" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<assay_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/types/$', "node_types", name="data_set_manager_node_types" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/types_files/$', "node_types_files", name="data_set_manager_node_types_files" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<assay_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/types_files/$', "node_types_files", name="data_set_manager_node_types_files" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/attributes/(?P<type>[\w ]+)/$', "node_attributes", name="data_set_manager_node_attributes" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<assay_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/attributes/(?P<type>[\w ]+)/$', "node_attributes", name="data_set_manager_node_attributes" ),
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<assay_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<type>[\w ]+)/$', "nodes", name="data_set_manager_nodes" ),
-
-    url(r'^nodes/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<assay_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<type>[\w ]+)/annotate$', "node_annotate", name="data_set_manager_update_annotated_nodes" ),
-    
+urlpatterns = patterns(
+    'data_set_manager.views',
+    url(r'^import/$', login_required(DataSetImportView.as_view()),
+        name='import_data_set'),
+    # csrf_exempt required for POST requests from external sites
     url(r'^import/isa-tab/$', csrf_exempt(ImportISATabView.as_view()),
         name='import_isa_tab'),
-    url(r'^import/isa-tab-form/$', login_required(ProcessISATabView.as_view()),
+    url(r'^import/isa-tab-form/$',
+        login_required(ProcessISATabView.as_view()),
         name='process_isa_tab'),
-    url(r'^contents/(?P<study_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(?P<assay_uuid>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/$', "contents", name="data_set_manager_contents" ),
+    url(r'^import/isa-tab-form/(?P<ajax>.+)/$',
+        login_required(ProcessISATabView.as_view()),
+        name='process_isa_tab'),
     url(r'^import/metadata-table-form/$',
         login_required(ProcessMetadataTableView.as_view()),
         name='process_metadata_table'),
     url(r'^import/check_files/$', CheckDataFilesView.as_view(),
         name='check_files'),
+    url(r'^import/chunked-upload/$',
+        login_required(ChunkedFileUploadView.as_view()),
+        name='api_chunked_upload'),
+    url(r'^import/chunked-upload-complete/$',
+        login_required(ChunkedFileUploadCompleteView.as_view()),
+        name='api_chunked_upload_complete'),
+    url(r'^import/take_ownership/$',
+        TakeOwnershipOfPublicDatasetView.as_view(),
+        name='take_ownership_of_public_dataset'),
+
 )
+
+# DRF url routing
+data_set_manager_router = DefaultRouter()
+data_set_manager_router.urls.extend([
+    url(r'^assays/$', Assays.as_view()),
+    url(r'^assays/(?P<uuid>'
+        r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{'
+        r''r'12})/files/$', AssaysFiles.as_view()),
+    url(r'^assays/(?P<uuid>'
+        r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{'
+        r''r'12})/attributes/$', AssaysAttributes.as_view()),
+])

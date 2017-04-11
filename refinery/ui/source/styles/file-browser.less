@@ -1,0 +1,250 @@
+@import "variables.less";
+
+/*From data_set2.html, double c*/
+.facet-value-list td {
+  padding: 2px;
+}
+
+.facet-value-list tr {
+  padding: 2px;
+}
+
+.grid {
+  width: 100%;
+  height: 75vh;
+}
+
+.fa.fa-wrench {
+  cursor: pointer;
+}
+
+.panel-group.data-set-filters {
+  label {
+    padding-left: 0;
+  }
+  .checkbox.container{
+    width: 100%;
+  }
+  .row{
+    display: flex;
+    input{
+      margin-left: 0;
+      position: relative;
+    }
+    .col-xs-8 > span {
+      width: 100%;
+    }
+  }
+}
+
+.solid-opacity {
+  opacity: 1;
+}
+
+/*From data_set2.html*/
+
+/**
+ * For the correct
+  positioning of the placeholder element, the dnd-list and
+ * its children must have position: relative
+ */
+
+.fileUtilModal ul{
+  list-style-type: none;
+  border: none;
+}
+
+.fileUtilModal ul[dnd-list],
+.fileUtilModal ul[dnd-list] > li {
+	position: relative;
+}
+
+/**
+ * The dnd-list should always have a min-height,
+ * otherwise you can't drop to it once its empty
+ */
+.fileUtilModal ul[dnd-list] {
+    min-height: 42px;
+    padding-left: 0px;
+    width: 100%;
+}
+
+/**
+ * The dndDraggingSource class will be applied to
+ * the source element of a drag operation. It makes
+ * sense to hide it to give the user the feeling
+ * that he's actually moving it.
+ */
+.fileUtilModal ul[dnd-list] .dndDraggingSource {
+    display: none;
+}
+
+/**
+ * An element with .dndPlaceholder class will be
+ * added to the dnd-list while the user is dragging
+ * over it.
+ */
+.fileUtilModal ul[dnd-list] .dndPlaceholder {
+    display: block;
+    background-color: @white;
+    min-height: 42px;
+}
+
+/**
+ * The dnd-lists's child elements currently MUST have
+ * position: relative. Otherwise we can not determine
+ * whether the mouse pointer is in the upper or lower
+ * half of the element we are dragging over. In other
+ * browsers we can use event.offsetY for this.
+ */
+.fileUtilModal ul[dnd-list] li {
+    background-color: @white;
+    border: 1px solid @gray-lighter;
+    border-top-right-radius: 4px;
+    border-top-left-radius: 4px;
+    display: block;
+    padding: 10px 15px;
+    margin-bottom: -1px;
+}
+
+.ui-grid-selection-row-header-buttons > .fa.fa-arrow-right {
+  display: inline-block;
+  width: 1em;
+  margin-right: .2em;
+  text-align: center;
+  line-height: 1em;
+  margin-left: .2em;
+}
+
+.vertical-align {
+    display: flex;
+    align-items: center;
+}
+
+#data-set-view {
+  padding: 0;
+
+  /** Files Tab **/
+  #files {
+    padding-left: 5px;
+    padding-right: 5px;
+
+    .ui-select-drop {
+      width: 150px;
+    }
+
+    .ui-select-placeholder {
+      display: inline;
+    }
+
+    .row.view-control {
+      background-color: @gray-lighter;
+    }
+
+    .fa-question-circle {
+      vertical-align: top;
+    }
+
+    .fa-wrench {
+      background-color: #f5f5f5;
+      box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);;
+      background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#fff), to(#e6e6e6));
+      vertical-align: middle;
+      font-size: 75%;
+    }
+    .fa-border {
+      border-color: #f5f5f5;
+    }
+
+    .fa-question {
+      vertical-align: top;
+    }
+  }
+}
+
+#tool-info-display {
+  width: 100%;
+}
+
+.wrap-word {
+  word-wrap: break-word;
+}
+
+#input-group-nav {
+  ul {
+    padding-left: 0px;
+    list-style-type: none;
+
+    li {
+      margin-bottom: 5px;
+      padding-left: 5px;
+
+      .fileTypes {
+        display: inline;
+      }
+    }
+
+    li:nth-of-type(6n-5) {
+      color: #009E73;
+    }
+    li:nth-of-type(6n-4) {
+      color: #CC79A7;
+    }
+
+    li:nth-of-type(6n-3) {
+      color: #56B4E9;
+    }
+
+    li:nth-of-type(6n-2) {
+      color: #E69F00;
+    }
+
+    li:nth-of-type(6n-1) {
+      color: #F0E442;
+    }
+
+    li:nth-of-type(6n-0) {
+      color: #D55E00;
+    }
+  }
+}
+
+#table-filter {
+  height: 75vh;
+  margin: 0 0 0 10px;
+  padding: 0;
+  border: 1px solid #d4d4d4;
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.2);
+  background-color: #f3f3f3;
+  h3 {
+    font-weight: bold;
+  }
+
+  #filter-panel-body {
+  height: 50vh;
+  overflow-y: scroll;
+  padding: 0px 5px 5px 10px;
+  }
+
+  #filter-panel-body::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  #filter-panel-body::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+  }
+
+  #filter-panel-body::-webkit-scrollbar-track {
+      -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+      -webkit-border-radius: 10px;
+      border-radius: 10px;
+  }
+
+ .sub-group-panel {
+   padding: 0px 10px 5px 10px;
+  }
+}

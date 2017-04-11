@@ -1,11 +1,12 @@
-from django.conf.urls.defaults import patterns, url
-from django.contrib.auth.decorators import login_required
+from django.conf.urls import url
+from rest_framework.routers import DefaultRouter
 
-# from resumable.views import ResumableUploadView
-from file_store.views import MyResumableUploadView
+from file_store.views import FileStoreItems
 
-
-urlpatterns = patterns('file_store.views',
-    url('^upload/$', login_required(MyResumableUploadView.as_view()),
-        name='upload'),
-)
+# DRF url routing
+file_store_router = DefaultRouter()
+file_store_router.urls.extend([
+    url(r'^file_store_items/(?P<uuid>'
+        r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{'
+        r''r'12})/$', FileStoreItems.as_view())
+])
